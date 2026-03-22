@@ -1,4 +1,5 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, expectTypeOf, test, vi } from "vite-plus/test";
 import { CRAWL_STRATEGIES, DEFAULT_CRAWL_MAX_DEPTH, OUTPUT_FORMATS, ROUTE_SOURCES } from "../src";
@@ -6,6 +7,9 @@ import {
   Container,
   PluginManager,
   SERVICE_KEYS,
+  mergeRouteCollections,
+  mergeRouteMeta,
+  mergeRoutes,
   readProjectContext,
   registerAdapter,
   registerConfig,
@@ -52,12 +56,161 @@ describe("public runtime exports", () => {
     expect(typeof coreModule.Container).toBe("function");
     expect(typeof coreModule.PluginManager).toBe("function");
     expect(typeof coreModule.readProjectContext).toBe("function");
+    expect(typeof coreModule.mergeRouteCollections).toBe("function");
+  });
+});
+
+describe("route merge", () => {
+  test("upgrades matching static and runtime routes to hybrid", () => {
+    expect(
+      mergeRoutes(
+        {
+          path: "/users/:id",
+          params: ["id"],
+          source: "static",
+          meta: {
+            staticFiles: ["src/routes.tsx"],
+            staticSources: ["react-router-ast"],
+          },
+        },
+        {
+          path: "/users/:id",
+          source: "runtime",
+          meta: {
+            runtimeSources: ["history-capture"],
+          },
+        },
+      ),
+    ).toEqual({
+      path: "/users/:id",
+      params: ["id"],
+      source: "hybrid",
+      meta: {
+        staticFiles: ["src/routes.tsx"],
+        staticSources: ["react-router-ast"],
+        runtimeFiles: [],
+        runtimeSources: ["history-capture"],
+      },
+    });
+  });
+
+  test("merges route collections by path and preserves independent routes", () => {
+    expect(
+      mergeRouteCollections(
+        [
+          { path: "/", source: "static", meta: { staticSources: ["file-based-routing"] } },
+          { path: "/about", source: "static" },
+        ],
+        [
+          { path: "/", source: "runtime", meta: { runtimeSources: ["crawler-bfs"] } },
+          { path: "/contact", source: "runtime" },
+        ],
+      ),
+    ).toEqual([
+      {
+        path: "/",
+        source: "hybrid",
+        meta: {
+          staticFiles: [],
+          staticSources: ["file-based-routing"],
+          runtimeFiles: [],
+          runtimeSources: ["crawler-bfs"],
+        },
+      },
+      { path: "/about", source: "static" },
+      { path: "/contact", source: "runtime" },
+    ]);
+  });
+
+  test("merges route metadata with malformed arrays safely", () => {
+    expect(
+      mergeRouteMeta(
+        {
+          staticFiles: "invalid",
+          staticSources: ["file-based-routing", 123],
+        },
+        {
+          runtimeFiles: ["crawler.ts"],
+          runtimeSources: "invalid",
+        },
+      ),
+    ).toEqual({
+      staticFiles: [],
+      staticSources: ["file-based-routing"],
+      runtimeFiles: ["crawler.ts"],
+      runtimeSources: [],
+    });
+  });
+
+  test("returns undefined when both route metadata objects are missing", () => {
+    expect(mergeRouteMeta(undefined, undefined)).toBeUndefined();
+  });
+
+  test("merges route metadata when only the left side exists", () => {
+    expect(
+      mergeRouteMeta(
+        {
+          staticFiles: ["src/routes.tsx"],
+          staticSources: ["react-router-ast"],
+        },
+        undefined,
+      ),
+    ).toEqual({
+      staticFiles: ["src/routes.tsx"],
+      staticSources: ["react-router-ast"],
+      runtimeFiles: [],
+      runtimeSources: [],
+    });
+  });
+
+  test("preserves identical route sources and existing hybrid sources", () => {
+    expect(
+      mergeRoutes(
+        { path: "/about", source: "static" },
+        { path: "/about", source: "static", meta: { staticSources: ["file-based-routing"] } },
+      ),
+    ).toEqual({
+      path: "/about",
+      source: "static",
+      meta: {
+        staticFiles: [],
+        staticSources: ["file-based-routing"],
+        runtimeFiles: [],
+        runtimeSources: [],
+      },
+    });
+
+    expect(
+      mergeRoutes(
+        { path: "/posts/:slug", params: ["slug"], source: "static" },
+        { path: "/posts/:slug", source: "runtime" },
+      ),
+    ).toEqual({
+      path: "/posts/:slug",
+      params: ["slug"],
+      source: "hybrid",
+    });
+
+    expect(
+      mergeRoutes(
+        { path: "/posts/:slug", source: "static" },
+        { path: "/posts/:slug", params: ["slug"], source: "runtime" },
+      ),
+    ).toEqual({
+      path: "/posts/:slug",
+      params: ["slug"],
+      source: "hybrid",
+    });
+
+    expect(
+      mergeRoutes({ path: "/contact", source: "hybrid" }, { path: "/contact", source: "runtime" }),
+    ).toEqual({ path: "/contact", source: "hybrid" });
   });
 });
 
 describe("project context", () => {
   test("reads and parses package.json from disk", async () => {
-    const rootDir = await mkdtemp(join(import.meta.dirname, "context-fixture-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "context-fixture-"));
 
     try {
       await writeFile(
@@ -75,9 +228,9 @@ describe("project context", () => {
   });
 
   test("returns an empty package object when package.json is missing or malformed", async () => {
-    const missingRootDir = await mkdtemp(join(import.meta.dirname, "context-missing-"));
-    const malformedRootDir = await mkdtemp(join(import.meta.dirname, "context-malformed-"));
-    const invalidShapeRootDir = await mkdtemp(join(import.meta.dirname, "context-invalid-shape-"));
+    const missingRootDir = await mkdtemp(join(tmpdir(), "context-missing-"));
+    const malformedRootDir = await mkdtemp(join(tmpdir(), "context-malformed-"));
+    const invalidShapeRootDir = await mkdtemp(join(tmpdir(), "context-invalid-shape-"));
 
     try {
       await mkdir(malformedRootDir, { recursive: true });

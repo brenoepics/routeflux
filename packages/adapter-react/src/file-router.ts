@@ -1,14 +1,17 @@
 import { readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import type { ProjectContext, Route } from "@routeforge/core";
+import { mergeRouteMeta, type ProjectContext, type Route } from "@routeforge/core";
 
 const FILE_EXTENSIONS_PATTERN = /\.(?:[cm]?[jt]sx?)$/;
 const FILE_BASED_PLUGIN = "vite-plugin-pages";
 const PAGES_DIRECTORIES = ["pages", join("src", "pages")];
 const ROUTE_GROUP_PATTERN = /^\(.+\)$/;
+const PATHLESS_SEGMENT_PATTERN = /^_(?!index$)(.+)$/;
 const CATCH_ALL_SEGMENT_PATTERN = /^\[\.\.\.(\w+)\]$/;
 const OPTIONAL_CATCH_ALL_SEGMENT_PATTERN = /^\[\[\.\.\.(\w+)\]\]$/;
 const DYNAMIC_SEGMENT_PATTERN = /^\[(\w+)\]$/;
+const REMIX_DYNAMIC_SEGMENT_PATTERN = /^\$(\w+)$/;
+const REMIX_SPLAT_SEGMENT_PATTERN = /^\$$/;
 const IGNORED_PAGE_FILES = new Set([
   "_app",
   "_document",
@@ -20,7 +23,6 @@ const IGNORED_PAGE_FILES = new Set([
   "error",
   "default",
   "not-found",
-  "route",
 ]);
 
 const FILE_ROUTING_SOURCE = "file-based-routing";
@@ -68,7 +70,7 @@ export async function extractFileBasedRoutes(ctx: ProjectContext): Promise<Route
     for (const pagesRoot of getPagesRoots(ctx.rootDir)) {
       for (const filePath of collectPageFiles(pagesRoot)) {
         const routePath = filePathToRoute(filePath, pagesRoot);
-        routes.set(routePath, {
+        const nextRoute: Route = {
           path: routePath,
           source: "static",
           meta: {
@@ -76,6 +78,12 @@ export async function extractFileBasedRoutes(ctx: ProjectContext): Promise<Route
             staticFiles: [filePath],
             staticSources: [FILE_ROUTING_SOURCE],
           },
+        };
+        const existingRoute = routes.get(routePath);
+
+        routes.set(routePath, {
+          ...nextRoute,
+          meta: mergeRouteMeta(existingRoute?.meta, nextRoute.meta),
         });
       }
     }
@@ -136,9 +144,7 @@ function collectPageFiles(directory: string): string[] {
 }
 
 function shouldIgnoreEntry(name: string): boolean {
-  return (
-    name === "__tests__" || name.startsWith(".") || (name.startsWith("_") && !name.startsWith("[["))
-  );
+  return name === "__tests__" || name.startsWith(".");
 }
 
 function shouldIgnorePageFile(name: string): boolean {
@@ -147,11 +153,17 @@ function shouldIgnorePageFile(name: string): boolean {
 }
 
 function normalizeRouteSegment(segment: string, isLeafFile: boolean): string[] {
-  if (segment === "index") {
+  const tokens = segment.startsWith("[") && segment.endsWith("]") ? [segment] : segment.split(".");
+
+  return tokens.flatMap((token) => normalizeRouteToken(token, isLeafFile));
+}
+
+function normalizeRouteToken(segment: string, isLeafFile: boolean): string[] {
+  if (segment === "index" || segment === "_index") {
     return [];
   }
 
-  if (isLeafFile && segment === "page") {
+  if (isLeafFile && (segment === "page" || segment === "route")) {
     return [];
   }
 
@@ -159,13 +171,30 @@ function normalizeRouteSegment(segment: string, isLeafFile: boolean): string[] {
     return [];
   }
 
+  if (PATHLESS_SEGMENT_PATTERN.test(segment)) {
+    return [];
+  }
+
   if (OPTIONAL_CATCH_ALL_SEGMENT_PATTERN.test(segment) || CATCH_ALL_SEGMENT_PATTERN.test(segment)) {
+    return ["*"];
+  }
+
+  if (REMIX_SPLAT_SEGMENT_PATTERN.test(segment)) {
     return ["*"];
   }
 
   const dynamicMatch = segment.match(DYNAMIC_SEGMENT_PATTERN);
   if (dynamicMatch) {
     return [`:${dynamicMatch[1]}`];
+  }
+
+  const remixDynamicMatch = segment.match(REMIX_DYNAMIC_SEGMENT_PATTERN);
+  if (remixDynamicMatch) {
+    return [`:${remixDynamicMatch[1]}`];
+  }
+
+  if (segment.endsWith("_")) {
+    return [segment.slice(0, -1)];
   }
 
   return [segment];
