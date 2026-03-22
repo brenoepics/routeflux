@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFile, writeFile } from "node:fs/promises";
+import { execSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import path from "node:path";
@@ -21,12 +22,28 @@ const PACKAGE_JSON_PATHS = [
 
 const VERSION_PATTERN = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+)(?:\.(\d+))?)?$/;
 
+function exec(command, options = {}) {
+  return execSync(command, {
+    cwd: ROOT_DIR,
+    stdio: "inherit",
+    ...options,
+  });
+}
+
 if (process.argv.includes("--help")) {
   output.write(
-    `Usage: node scripts/bump-version.mjs\n\nInteractive version bump tool for the Routeflux workspace.\n`,
+    `Usage: node scripts/bump-version.mjs [--no-git]
+
+Interactive version bump tool for the Routeflux workspace.
+
+Options:
+  --no-git    Skip git branch and tag creation
+`,
   );
   process.exit(0);
 }
+
+const skipGit = process.argv.includes("--no-git");
 
 const rl = createInterface({ input, output });
 
@@ -48,6 +65,38 @@ try {
   output.write(`\nUpdating workspace versions to ${nextVersion}...\n`);
   await updateVersions(nextVersion);
   output.write("Done.\n");
+
+  if (skipGit) {
+    output.write("\nGit operations skipped (--no-git flag used).\n");
+  } else {
+    const branchName = `release/v${nextVersion}`;
+    const tagName = `v${nextVersion}`;
+
+    output.write(`\nCreating git branch: ${branchName}\n`);
+    exec(`git checkout -b ${branchName}`);
+
+    output.write(`Creating git tag: ${tagName}\n`);
+    exec(`git tag ${tagName}`);
+
+    output.write("\nGit operations complete.\n\n");
+    output.write("Next steps:\n");
+    output.write("1. Review changes: git diff\n");
+    output.write(
+      '2. Commit: git add -A && git commit -m "chore: bump version to ${nextVersion}"\n',
+    );
+    output.write("3. Push branch and tag:\n");
+    output.write(`   git push origin ${branchName}\n`);
+    output.write(`   git push origin ${tagName}\n`);
+    output.write("\n4. Create a PR:\n");
+    output.write(
+      `   gh pr create --title "Release v${nextVersion}" --body "Release v${nextVersion}"\n`,
+    );
+    output.write("\n5. Or create a GitHub Release:\n");
+    output.write(
+      `   gh release create ${tagName} --title "v${nextVersion}" --notes "Release v${nextVersion}"\n`,
+    );
+    output.write("\n");
+  }
 } finally {
   rl.close();
 }
