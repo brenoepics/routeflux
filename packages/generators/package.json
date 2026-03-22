@@ -1,8 +1,12 @@
 {
   "name": "@routeflux/generators",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.1-alpha.2",
   "description": "Shared output generators for Routeflux.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brenoepics/routeflux.git"
+  },
   "files": [
     "dist"
   ],

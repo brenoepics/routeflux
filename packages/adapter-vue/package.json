@@ -1,8 +1,12 @@
 {
   "name": "@routeflux/adapter-vue",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.1-alpha.2",
   "description": "Vue route adapter for Routeflux.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brenoepics/routeflux.git"
+  },
   "files": [
     "dist"
   ],

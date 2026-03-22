@@ -1,16 +1,11 @@
 {
-  "name": "utils",
-  "version": "0.0.1-alpha.1",
-  "description": "A starter for creating a TypeScript package.",
-  "homepage": "https://github.com/author/library#readme",
-  "bugs": {
-    "url": "https://github.com/author/library/issues"
-  },
+  "name": "@routeflux/utils",
+  "version": "0.0.1-alpha.2",
+  "description": "Shared utilities for Routeflux.",
   "license": "MIT",
-  "author": "Author Name <author.name@mail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/author/library.git"
+    "url": "https://github.com/brenoepics/routeflux.git"
   },
   "files": [
     "dist"
