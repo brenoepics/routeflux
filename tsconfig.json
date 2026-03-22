@@ -3,10 +3,8 @@
     "noEmit": true,
     "module": "preserve",
     "moduleResolution": "bundler",
-    "paths": {
-      "@routeflux/*": ["./packages/*/src/index.ts"]
-    },
     "allowImportingTsExtensions": true,
     "esModuleInterop": true
-  }
+  },
+  "include": ["vite.config.ts"]
 }

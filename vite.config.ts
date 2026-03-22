@@ -2,7 +2,7 @@ import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   staged: {
-    "*": "vp check --fix",
+    "*": "vp run check -r",
   },
   lint: { options: { typeAware: true, typeCheck: true } },
 });
