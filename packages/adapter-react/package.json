@@ -1,6 +1,6 @@
 {
   "name": "@routeflux/adapter-react",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1-alpha.1",
   "description": "React route adapter for Routeflux.",
   "license": "MIT",
   "files": [

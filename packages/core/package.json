@@ -1,6 +1,6 @@
 {
   "name": "@routeflux/core",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1-alpha.1",
   "description": "Shared types and contracts for Routeflux packages.",
   "license": "MIT",
   "files": [
