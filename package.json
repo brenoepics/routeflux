@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "bump:version": "node scripts/bump-version.mjs",
     "ready": "vp fmt && vp lint && vp run test -r && vp run build -r",
     "dev": "vp run website#dev",
     "docs": "vp run docs#dev",

@@ -1,0 +1,43 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    name: Release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Set node version to 24
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Prepare
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve dist tag
+        id: dist-tag
+        run: |
+          PACKAGE_DIST_TAG=$(node -e "const version=require('./package.json').version; const match=/^\d+\.\d+\.\d+(?:-([0-9A-Za-z-]+)(?:\.\d+)?)?$/.exec(version); console.log(match?.[1] || 'latest')")
+          echo "tag=$PACKAGE_DIST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Publish packages
+        env:
+          NPM_CONFIG_PROVENANCE: true
+        run: |
+          pnpm -r --filter "./packages/*" publish --access public --tag "${{ steps.dist-tag.outputs.tag }}" --provenance --no-git-checks
