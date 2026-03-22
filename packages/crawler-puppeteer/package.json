@@ -8,9 +8,13 @@
   ],
   "type": "module",
   "sideEffects": false,
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.mjs",
+  "types": "./src/index.ts",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
