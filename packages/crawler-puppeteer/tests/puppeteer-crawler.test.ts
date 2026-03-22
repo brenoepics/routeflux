@@ -312,6 +312,80 @@ describe("PuppeteerCrawler", () => {
     ]);
   });
 
+  test("captures page-level SEO metadata for runtime routes", async () => {
+    let currentUrl = "https://example.com/";
+
+    goto.mockImplementation(async (url: string) => {
+      currentUrl = url;
+    });
+    evaluate.mockImplementation(async (script: () => unknown) => {
+      const source = script.toString();
+
+      if (source.includes('document.querySelectorAll("a")')) {
+        return [];
+      }
+
+      if (source.includes("__ROUTE_CHANGES__")) {
+        return [];
+      }
+
+      if (source.includes('meta[name="description"]')) {
+        return currentUrl === "https://example.com/"
+          ? {
+              alternates: [{ hreflang: "en", href: "https://example.com/" }],
+              canonicalUrl: "https://example.com/?utm_source=ads",
+              description: "Home page",
+              images: [{ loc: "https://example.com/hero.png", title: "Hero" }],
+              lastmod: "2026-03-20",
+              noindex: false,
+              robots: "index,follow",
+              runtimeSources: ["crawler-page"],
+              title: "Routeflux",
+            }
+          : {
+              alternates: [],
+              canonicalUrl: undefined,
+              description: undefined,
+              images: [],
+              lastmod: undefined,
+              noindex: undefined,
+              robots: undefined,
+              runtimeSources: ["crawler-page"],
+              title: undefined,
+            };
+      }
+
+      return [];
+    });
+
+    const crawler = new PuppeteerCrawler({ launch });
+    const result = await crawler.crawl("https://example.com", { interactionDelay: 0, maxPages: 1 });
+
+    expect(result.routes).toEqual([
+      {
+        path: "/",
+        source: "runtime",
+        meta: {
+          alternates: [{ hreflang: "en", href: "https://example.com/" }],
+          canonicalUrl: "https://example.com/?utm_source=ads",
+          description: "Home page",
+          examples: [],
+          images: [{ loc: "https://example.com/hero.png", title: "Hero" }],
+          lastmod: "2026-03-20",
+          noindex: false,
+          robots: "index,follow",
+          runtimeFiles: [],
+          runtimeSources: ["crawler-page"],
+          staticFiles: [],
+          staticSources: [],
+          title: "Routeflux",
+          video: [],
+          videos: [],
+        },
+      },
+    ]);
+  });
+
   test("merges adapter runtime routes with static routes into hybrid results", async () => {
     const pages: Record<string, string[]> = {
       "https://example.com/": ["https://example.com/users/123"],

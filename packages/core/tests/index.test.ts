@@ -10,6 +10,8 @@ import {
   mergeRouteCollections,
   mergeRouteMeta,
   mergeRoutes,
+  normalizeRoute,
+  normalizeRouteMeta,
   readProjectContext,
   registerAdapter,
   registerConfig,
@@ -64,6 +66,58 @@ describe("public runtime exports", () => {
 });
 
 describe("route merge", () => {
+  test("normalizes shared route metadata conventions", () => {
+    expect(
+      normalizeRouteMeta({
+        alternates: { en: "/en/about", fr: "/fr/about", broken: 1 },
+        canonicalUrl: "https://example.com/about",
+        description: "About page",
+        examples: ["/about", 1, "/about"],
+        images: ["/hero.png", { loc: "/hero.png", title: "Hero" }, { loc: "/cover.png" }],
+        priority: "0.8",
+        runtimeSources: ["crawler", 1, "crawler"],
+        title: "About",
+        video: [{ title: "Demo", playerLoc: "/player" }, { description: "ignored" }],
+      }),
+    ).toEqual({
+      alternates: [
+        { hreflang: "en", href: "/en/about" },
+        { hreflang: "fr", href: "/fr/about" },
+      ],
+      canonicalUrl: "https://example.com/about",
+      description: "About page",
+      examples: ["/about"],
+      images: [{ loc: "/hero.png" }, { loc: "/hero.png", title: "Hero" }, { loc: "/cover.png" }],
+      priority: 0.8,
+      runtimeFiles: [],
+      runtimeSources: ["crawler"],
+      staticFiles: [],
+      staticSources: [],
+      title: "About",
+      video: [{ playerLoc: "/player", title: "Demo" }],
+      videos: [{ playerLoc: "/player", title: "Demo" }],
+    });
+    expect(normalizeRouteMeta(undefined)).toBeUndefined();
+    expect(normalizeRoute({ path: "/about", source: "runtime", meta: { title: "About" } })).toEqual(
+      {
+        path: "/about",
+        source: "runtime",
+        meta: {
+          alternates: [],
+          examples: [],
+          images: [],
+          runtimeFiles: [],
+          runtimeSources: [],
+          staticFiles: [],
+          staticSources: [],
+          title: "About",
+          video: [],
+          videos: [],
+        },
+      },
+    );
+  });
+
   test("upgrades matching static and runtime routes to hybrid", () => {
     expect(
       mergeRoutes(
@@ -89,8 +143,13 @@ describe("route merge", () => {
       params: ["id"],
       source: "hybrid",
       meta: {
+        alternates: [],
+        examples: [],
+        images: [],
         staticFiles: ["src/routes.tsx"],
         staticSources: ["react-router-ast"],
+        video: [],
+        videos: [],
         runtimeFiles: [],
         runtimeSources: ["history-capture"],
       },
@@ -114,8 +173,13 @@ describe("route merge", () => {
         path: "/",
         source: "hybrid",
         meta: {
+          alternates: [],
+          examples: [],
+          images: [],
           staticFiles: [],
           staticSources: ["file-based-routing"],
+          video: [],
+          videos: [],
           runtimeFiles: [],
           runtimeSources: ["crawler-bfs"],
         },
@@ -138,8 +202,13 @@ describe("route merge", () => {
         },
       ),
     ).toEqual({
+      alternates: [],
+      examples: [],
+      images: [],
       staticFiles: [],
       staticSources: ["file-based-routing"],
+      video: [],
+      videos: [],
       runtimeFiles: ["crawler.ts"],
       runtimeSources: [],
     });
@@ -159,8 +228,13 @@ describe("route merge", () => {
         undefined,
       ),
     ).toEqual({
+      alternates: [],
+      examples: [],
+      images: [],
       staticFiles: ["src/routes.tsx"],
       staticSources: ["react-router-ast"],
+      video: [],
+      videos: [],
       runtimeFiles: [],
       runtimeSources: [],
     });
@@ -176,8 +250,13 @@ describe("route merge", () => {
       path: "/about",
       source: "static",
       meta: {
+        alternates: [],
+        examples: [],
+        images: [],
         staticFiles: [],
         staticSources: ["file-based-routing"],
+        video: [],
+        videos: [],
         runtimeFiles: [],
         runtimeSources: [],
       },

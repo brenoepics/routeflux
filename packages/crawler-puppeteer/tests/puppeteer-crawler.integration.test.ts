@@ -210,4 +210,83 @@ describe("PuppeteerCrawler integration", () => {
     expect(result.errors).toBeUndefined();
     expect(result.routes).toEqual([{ path: "/", source: "runtime" }]);
   }, 30_000);
+
+  test("captures canonical, title, description, images, and alternates from page metadata", async () => {
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(`
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <title>Rounds</title>
+            <meta name="description" content="Hiring platform" />
+            <meta name="robots" content="index,follow" />
+            <meta property="article:modified_time" content="2026-03-20" />
+            <link rel="canonical" href="https://www.rounds.so/?utm_source=ads" />
+            <link rel="alternate" hreflang="en" href="https://www.rounds.so/" />
+            <meta property="og:image" content="https://www.rounds.so/cover.png" />
+          </head>
+          <body>
+            <img src="/hero.png" alt="Hero" />
+          </body>
+        </html>
+      `);
+    });
+
+    const address = await new Promise<string>((resolve, reject) => {
+      server.listen(0, "127.0.0.1", () => {
+        const serverAddress = server.address();
+        if (serverAddress && typeof serverAddress === "object") {
+          resolve(`http://127.0.0.1:${serverAddress.port}`);
+          return;
+        }
+
+        reject(new Error("Failed to resolve metadata fixture server address"));
+      });
+      server.once("error", reject);
+    });
+
+    stopServer = async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          resolve();
+        });
+      });
+    };
+
+    const crawler = new PuppeteerCrawler();
+    const result = await crawler.crawl(address, { maxPages: 1 });
+
+    expect(result.routes).toEqual([
+      {
+        path: "/",
+        source: "runtime",
+        meta: {
+          alternates: [{ hreflang: "en", href: "https://www.rounds.so/" }],
+          canonicalUrl: "https://www.rounds.so/?utm_source=ads",
+          description: "Hiring platform",
+          examples: [],
+          images: [
+            { loc: "https://www.rounds.so/cover.png" },
+            { loc: expect.stringContaining("/hero.png"), title: "Hero" },
+          ],
+          lastmod: "2026-03-20",
+          noindex: false,
+          robots: "index,follow",
+          runtimeFiles: [],
+          runtimeSources: ["crawler-page"],
+          staticFiles: [],
+          staticSources: [],
+          title: "Rounds",
+          video: [],
+          videos: [],
+        },
+      },
+    ]);
+  }, 30_000);
 });

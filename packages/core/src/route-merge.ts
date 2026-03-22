@@ -1,3 +1,9 @@
+import {
+  normalizeRouteMeta,
+  type RouteMetaAlternate,
+  type RouteMetaImage,
+  type RouteMetaVideo,
+} from "./route-meta";
 import type { Route, RouteSource } from "./types";
 
 /**
@@ -47,14 +53,64 @@ export function mergeRouteMeta(
 
   const safeLeft = left ?? {};
   const safeRight = right ?? {};
+  const normalizedLeft =
+    normalizeRouteMeta(safeLeft) ??
+    ({} as {
+      alternates?: RouteMetaAlternate[];
+      images?: RouteMetaImage[];
+      videos?: RouteMetaVideo[];
+      video?: RouteMetaVideo[];
+      examples?: string[];
+      runtimeFiles?: string[];
+      runtimeSources?: string[];
+      staticFiles?: string[];
+      staticSources?: string[];
+    });
+  const normalizedRight =
+    normalizeRouteMeta(safeRight) ??
+    ({} as {
+      alternates?: RouteMetaAlternate[];
+      images?: RouteMetaImage[];
+      videos?: RouteMetaVideo[];
+      video?: RouteMetaVideo[];
+      examples?: string[];
+      runtimeFiles?: string[];
+      runtimeSources?: string[];
+      staticFiles?: string[];
+      staticSources?: string[];
+    });
 
   return {
-    ...safeLeft,
-    ...safeRight,
-    staticFiles: mergeStringArrays(safeLeft.staticFiles, safeRight.staticFiles),
-    staticSources: mergeStringArrays(safeLeft.staticSources, safeRight.staticSources),
-    runtimeFiles: mergeStringArrays(safeLeft.runtimeFiles, safeRight.runtimeFiles),
-    runtimeSources: mergeStringArrays(safeLeft.runtimeSources, safeRight.runtimeSources),
+    ...normalizedLeft,
+    ...normalizedRight,
+    alternates: mergeObjectArrays<RouteMetaAlternate>(
+      normalizedLeft.alternates,
+      normalizedRight.alternates,
+      (alternate) => `${alternate.hreflang}:${alternate.href}`,
+    ),
+    examples: mergeStringArrays(normalizedLeft.examples, normalizedRight.examples),
+    images: mergeObjectArrays<RouteMetaImage>(
+      normalizedLeft.images,
+      normalizedRight.images,
+      (image) => `${image.loc}:${image.title ?? ""}`,
+    ),
+    runtimeFiles: mergeStringArrays(normalizedLeft.runtimeFiles, normalizedRight.runtimeFiles),
+    runtimeSources: mergeStringArrays(
+      normalizedLeft.runtimeSources,
+      normalizedRight.runtimeSources,
+    ),
+    staticFiles: mergeStringArrays(normalizedLeft.staticFiles, normalizedRight.staticFiles),
+    staticSources: mergeStringArrays(normalizedLeft.staticSources, normalizedRight.staticSources),
+    videos: mergeObjectArrays<RouteMetaVideo>(
+      normalizedLeft.videos,
+      normalizedRight.videos,
+      (video) => `${video.title}:${video.contentLoc ?? ""}:${video.playerLoc ?? ""}`,
+    ),
+    video: mergeObjectArrays<RouteMetaVideo>(
+      normalizedLeft.video,
+      normalizedRight.video,
+      (video) => `${video.title}:${video.contentLoc ?? ""}:${video.playerLoc ?? ""}`,
+    ),
   };
 }
 
@@ -87,4 +143,27 @@ function mergeStringArrays(left: unknown, right: unknown): string[] {
   ]
     .filter((value): value is string => typeof value === "string")
     .sort();
+}
+
+function mergeObjectArrays<T extends object>(
+  left: unknown,
+  right: unknown,
+  getKey: (value: T) => string,
+): T[] {
+  const values = [
+    ...(Array.isArray(left) ? left : []),
+    ...(Array.isArray(right) ? right : []),
+  ].filter((value): value is T => typeof value === "object" && value !== null);
+  const seen = new Set<string>();
+
+  return values.filter((value) => {
+    const key = getKey(value);
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
 }

@@ -3,6 +3,7 @@ import {
   DEFAULT_CRAWL_MAX_DEPTH,
   mergeRouteCollections,
   mergeRouteMeta,
+  normalizeRouteMeta,
   type Crawler,
   type CrawlOptions,
   type CrawlError,
@@ -73,7 +74,7 @@ export class PuppeteerCrawler implements Crawler {
     const normalizedStartUrl = normalizeUrl(startUrl);
     const errors: CrawlError[] = [];
     const visited = new Set<string>();
-    const concretePaths = new Set<string>();
+    const concreteRuntimeRoutes = new Map<string, Route>();
     const adapterRuntimePaths = new Map<string, Route>();
     const queue: Array<{ url: string; depth: number }> = [{ url: normalizedStartUrl, depth: 0 }];
     const maxDepth = options.maxDepth ?? DEFAULT_CRAWL_MAX_DEPTH;
@@ -110,11 +111,14 @@ export class PuppeteerCrawler implements Crawler {
           continue;
         }
 
-        concretePaths.add(toPathname(url));
+        concreteRuntimeRoutes.set(toPathname(url), {
+          path: toPathname(url),
+          source: "runtime",
+          meta: visit.pageMeta,
+        });
 
         for (const route of visit.adapterRoutes) {
-          adapterRuntimePaths.set(route.path, route);
-          concretePaths.add(route.path);
+          adapterRuntimePaths.set(route.path, { ...route, meta: normalizeRouteMeta(route.meta) });
         }
 
         for (const link of [
@@ -136,7 +140,7 @@ export class PuppeteerCrawler implements Crawler {
       }
 
       const runtimeRoutes = mergeRouteCollections(
-        toRoutesFromGroups(groupRoutesByTemplate([...concretePaths])),
+        buildRuntimeRoutesFromConcretePages(concreteRuntimeRoutes),
         buildAdapterRuntimeRoutes(adapterRuntimePaths),
       );
 
@@ -217,7 +221,9 @@ export class PuppeteerCrawler implements Crawler {
     startUrl: string,
     errors: CrawlError[],
     interactionDelay: number,
-  ): Promise<{ adapterRoutes: Route[]; links: string[] } | undefined> {
+  ): Promise<
+    { adapterRoutes: Route[]; links: string[]; pageMeta?: Record<string, unknown> } | undefined
+  > {
     try {
       await page.goto(startUrl, { waitUntil: "networkidle2" });
     } catch (error) {
@@ -234,9 +240,10 @@ export class PuppeteerCrawler implements Crawler {
       });
     }
 
-    const [anchorLinks, dynamicPaths] = await Promise.all([
+    const [anchorLinks, dynamicPaths, pageMeta] = await Promise.all([
       this.extractAnchorLinks(page),
       this.collectDynamicRoutes(page),
+      this.collectPageMetadata(page),
     ]);
 
     const adapterRoutes =
@@ -245,6 +252,7 @@ export class PuppeteerCrawler implements Crawler {
     return {
       adapterRoutes,
       links: [...anchorLinks, ...dynamicPaths.map((path) => new URL(path, startUrl).toString())],
+      pageMeta,
     };
   }
 
@@ -276,6 +284,102 @@ export class PuppeteerCrawler implements Crawler {
     });
     /* c8 ignore stop */
   }
+
+  private async collectPageMetadata(
+    page: Pick<Page, "evaluate">,
+  ): Promise<Record<string, unknown> | undefined> {
+    /* c8 ignore start -- executed in the browser context during crawling */
+    const metadata = await page.evaluate(() => {
+      const getMetaContent = (selector: string) => {
+        const element = document.querySelector(selector);
+        return element instanceof HTMLMetaElement ? element.content : undefined;
+      };
+      const getLinkHref = (selector: string) => {
+        const element = document.querySelector(selector);
+        return element instanceof HTMLLinkElement ? element.href : undefined;
+      };
+
+      const canonicalUrl = getLinkHref('link[rel="canonical"]');
+      const robots = getMetaContent('meta[name="robots"]');
+      const description =
+        getMetaContent('meta[name="description"]') ??
+        getMetaContent('meta[property="og:description"]') ??
+        getMetaContent('meta[name="twitter:description"]');
+      const title =
+        document.title ||
+        getMetaContent('meta[property="og:title"]') ||
+        getMetaContent('meta[name="twitter:title"]');
+      const lastmod =
+        getMetaContent('meta[property="article:modified_time"]') ??
+        getMetaContent('meta[property="og:updated_time"]') ??
+        getMetaContent('meta[name="lastmod"]') ??
+        document.querySelector("time[datetime]")?.getAttribute("datetime") ??
+        undefined;
+      const alternates = Array.from(
+        document.querySelectorAll('link[rel="alternate"][hreflang]'),
+      ).flatMap((link) => {
+        if (!(link instanceof HTMLLinkElement)) {
+          return [];
+        }
+
+        return link.hreflang && link.href ? [{ hreflang: link.hreflang, href: link.href }] : [];
+      });
+      const images = [
+        ...Array.from(
+          document.querySelectorAll('meta[property="og:image"], meta[name="twitter:image"]'),
+        ).flatMap((meta) => {
+          return meta instanceof HTMLMetaElement && meta.content ? [{ loc: meta.content }] : [];
+        }),
+        ...Array.from(document.querySelectorAll("img[src]")).flatMap((image) => {
+          if (!(image instanceof HTMLImageElement) || (!image.currentSrc && !image.src)) {
+            return [];
+          }
+
+          return [
+            {
+              loc: image.currentSrc || image.src,
+              title: image.alt || undefined,
+            },
+          ];
+        }),
+      ].slice(0, 5);
+
+      return {
+        alternates,
+        canonicalUrl,
+        description,
+        images,
+        lastmod,
+        noindex: typeof robots === "string" ? robots.toLowerCase().includes("noindex") : undefined,
+        robots,
+        runtimeSources: ["crawler-page"],
+        title,
+      };
+    });
+    /* c8 ignore stop */
+
+    const normalized = normalizeRouteMeta(metadata);
+
+    return hasMeaningfulPageMetadata(normalized) ? normalized : undefined;
+  }
+}
+
+function buildRuntimeRoutesFromConcretePages(routes: Map<string, Route>): Route[] {
+  const groups = groupRoutesByTemplate([...routes.keys()]);
+
+  return toRoutesFromGroups(groups)
+    .map((route) => {
+      const group = groups.find((candidate) => candidate.template === route.path);
+      const meta = group?.examples.reduce<Record<string, unknown> | undefined>(
+        (current, example) => {
+          return mergeRouteMeta(current, routes.get(example)?.meta);
+        },
+        route.meta,
+      );
+
+      return meta ? { ...route, meta } : route;
+    })
+    .sort((left, right) => left.path.localeCompare(right.path));
 }
 
 function buildAdapterRuntimeRoutes(routes: Map<string, Route>): Route[] {
@@ -298,4 +402,27 @@ function buildAdapterRuntimeRoutes(routes: Map<string, Route>): Route[] {
 
 function sortRoutesByPath<T extends { path: string }>(routes: T[]): T[] {
   return [...routes].sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function hasMeaningfulPageMetadata(meta: Record<string, unknown> | undefined): boolean {
+  if (!meta) {
+    return false;
+  }
+
+  return [
+    meta.alternates,
+    meta.canonicalUrl,
+    meta.description,
+    meta.images,
+    meta.lastmod,
+    meta.noindex,
+    meta.robots,
+    meta.title,
+  ].some((value) => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return value !== undefined && value !== false && value !== "";
+  });
 }
