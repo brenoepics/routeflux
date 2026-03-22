@@ -9,6 +9,7 @@
     "prepare": "vp config"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "catalog:",
     "vite-plus": "catalog:"
   },
   "engines": {
