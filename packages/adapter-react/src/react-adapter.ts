@@ -1,5 +1,6 @@
 import type { ProjectContext, Route, RouteAdapter } from "@routeforge/core";
 import { detectFileBasedRouting, extractFileBasedRoutes } from "./file-router";
+import { injectReactRuntime } from "./runtime";
 import { extractPathsFromSourceFile, scanSourceFiles } from "./static-extractor";
 
 const AST_STATIC_SOURCE = "react-router-ast";
@@ -68,6 +69,13 @@ export class ReactAdapter implements RouteAdapter {
     }
 
     return [...routes.values()].sort((left, right) => left.path.localeCompare(right.path));
+  }
+
+  /**
+   * Injects React-oriented runtime capture hooks before navigation begins.
+   */
+  async enhanceRuntime(page: unknown): Promise<void> {
+    await injectReactRuntime(page);
   }
 }
 
