@@ -51,12 +51,13 @@ export class PuppeteerCrawler implements Crawler {
       return [];
     }
 
+    /* c8 ignore start -- executed in the browser context during crawling */
     return page.evaluate(() => {
-      /* c8 ignore next 4 -- executed in the browser context during crawling */
       return Array.from(document.querySelectorAll("a"))
         .map((anchor) => anchor.href)
         .filter((href) => href.startsWith("http"));
     });
+    /* c8 ignore stop */
   }
 
   private toRoutes(origin: string, links: string[]): Route[] {

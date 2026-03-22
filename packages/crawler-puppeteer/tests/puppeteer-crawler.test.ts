@@ -87,4 +87,14 @@ describe("PuppeteerCrawler", () => {
       now.mockRestore();
     }
   });
+
+  test("normalizes non-Error navigation failures into strings", async () => {
+    goto.mockRejectedValue("plain failure");
+
+    const crawler = new PuppeteerCrawler({ launch });
+    const result = await crawler.crawl("https://example.com", {});
+
+    expect(result.errors).toEqual([{ url: "https://example.com", message: "plain failure" }]);
+    expect(close).toHaveBeenCalledTimes(1);
+  });
 });
