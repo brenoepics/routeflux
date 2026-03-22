@@ -93,7 +93,7 @@ importers:
       '@babel/types':
         specifier: 'catalog:'
         version: 7.29.0
-      '@routeforge/core':
+      '@routeflux/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -130,7 +130,7 @@ importers:
       '@babel/types':
         specifier: 'catalog:'
         version: 7.29.0
-      '@routeforge/core':
+      '@routeflux/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -173,7 +173,7 @@ importers:
 
   packages/crawler-puppeteer:
     dependencies:
-      '@routeforge/core':
+      '@routeflux/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -198,7 +198,7 @@ importers:
 
   packages/generators:
     dependencies:
-      '@routeforge/core':
+      '@routeflux/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -238,19 +238,19 @@ importers:
 
   packages/vite-plugin:
     dependencies:
-      '@routeforge/adapter-react':
+      '@routeflux/adapter-react':
         specifier: workspace:*
         version: link:../adapter-react
-      '@routeforge/adapter-vue':
+      '@routeflux/adapter-vue':
         specifier: workspace:*
         version: link:../adapter-vue
-      '@routeforge/core':
+      '@routeflux/core':
         specifier: workspace:*
         version: link:../core
-      '@routeforge/crawler-puppeteer':
+      '@routeflux/crawler-puppeteer':
         specifier: workspace:*
         version: link:../crawler-puppeteer
-      '@routeforge/generators':
+      '@routeflux/generators':
         specifier: workspace:*
         version: link:../generators
       vite:

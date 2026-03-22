@@ -1,6 +1,6 @@
 # Outputs
 
-React Site Mapper turns discovered application routes into artifacts that other systems can consume.
+Routeflux turns discovered routes into files you can use.
 
 ## Current outputs
 
@@ -9,16 +9,16 @@ React Site Mapper turns discovered application routes into artifacts that other 
 
 ## Shared generators
 
-Both outputs are now implemented in `@routeforge/generators`:
+Both outputs are now implemented in `@routeflux/generators`:
 
 - `RoutesJsonGenerator`
 - `SitemapXmlGenerator`
 
-The Vite plugin selects generators through the same container-based orchestration path used for crawlers and adapters, so generator selection can be customized later through plugins.
+The Vite plugin selects generators through the same container flow used for crawlers and adapters.
 
 ## Where files are written
 
-During `vite build`, Routeforge writes generated files into the resolved Vite `build.outDir`.
+During `vite build`, Routeflux writes generated files into Vite's `build.outDir`.
 
 Common examples:
 
@@ -27,9 +27,9 @@ Common examples:
 
 ## Why crawl-driven outputs
 
-Single-page applications often hide route behavior behind client-side navigation, async rendering, and runtime state. Static route lists alone are not always enough.
+Single-page apps often hide routes behind client-side navigation and async state.
 
-This project aims to combine:
+Routeflux combines:
 
 - static route extraction
 - runtime route discovery
@@ -38,9 +38,9 @@ This project aims to combine:
 
 ## Dynamic routes in sitemap output
 
-When Routeforge only knows a template such as `/users/:id`, the sitemap generator skips it unless concrete runtime examples exist in `meta.examples`.
+If Routeflux only knows `/users/:id`, the sitemap generator skips it unless runtime examples exist in `meta.examples`.
 
-That means runtime crawling improves sitemap quality by turning templates into concrete URLs like:
+Runtime crawling improves the sitemap by turning templates into concrete URLs like:
 
 - `/users/1`
 - `/users/2`

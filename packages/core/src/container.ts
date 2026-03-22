@@ -18,7 +18,7 @@ export const SERVICE_KEYS = {
 export type ServiceKey = (typeof SERVICE_KEYS)[keyof typeof SERVICE_KEYS];
 
 /**
- * Minimal dependency injection container for Routeforge services.
+ * Minimal dependency injection container for Routeflux services.
  *
  * Registering a key that already exists intentionally replaces the previous value.
  * TODO: Add scoped containers when per-crawl isolation becomes necessary.

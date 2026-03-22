@@ -16,16 +16,16 @@ import {
   resolveAdapter,
   resolveCrawler,
   resolveGenerators,
-} from "@routeforge/core";
-import { ReactAdapter } from "@routeforge/adapter-react";
-import { VueAdapter } from "@routeforge/adapter-vue";
-import { PuppeteerCrawler } from "@routeforge/crawler-puppeteer";
-import { createGenerators } from "@routeforge/generators";
+} from "@routeflux/core";
+import { ReactAdapter } from "@routeflux/adapter-react";
+import { VueAdapter } from "@routeflux/adapter-vue";
+import { PuppeteerCrawler } from "@routeflux/crawler-puppeteer";
+import { createGenerators } from "@routeflux/generators";
 
 const DEFAULT_ADAPTER_FACTORIES = [() => new ReactAdapter(), () => new VueAdapter()];
 
 /**
- * Configuration for the Routeforge Vite plugin.
+ * Configuration for the Routeflux Vite plugin.
  */
 export interface CrawlerPluginOptions {
   /**
@@ -65,7 +65,7 @@ export interface CrawlerPluginOptions {
    */
   adapters?: RouteAdapter[];
   /**
-   * Optional Routeforge plugins to initialize before crawling.
+   * Optional Routeflux plugins to initialize before crawling.
    */
   plugins?: Plugin[];
 }

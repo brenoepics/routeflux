@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vite-plus/test";
-import { createGenerators } from "@routeforge/generators";
+import { createGenerators } from "@routeflux/generators";
 import { normalizeOutputTargets, writeCrawlOutputs } from "../src/output";
 
 describe("vite plugin outputs", () => {
@@ -15,7 +15,7 @@ describe("vite plugin outputs", () => {
   });
 
   test("writes configured crawl outputs to disk", async () => {
-    const outDir = await mkdtemp(join(tmpdir(), "routeforge-output-"));
+    const outDir = await mkdtemp(join(tmpdir(), "routeflux-output-"));
 
     try {
       const outputs = await Promise.all(

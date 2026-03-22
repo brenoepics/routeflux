@@ -1,4 +1,4 @@
-import type { Route } from "@routeforge/core";
+import type { Route } from "@routeflux/core";
 
 const DEFAULT_INTERACTION_DELAY = 500;
 const REACT_RUNTIME_SOURCE = "react-router-runtime";

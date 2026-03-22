@@ -1,7 +1,7 @@
 {
-  "name": "@routeforge/generators",
-  "version": "0.0.0",
-  "description": "Shared output generators for Routeforge.",
+  "name": "@routeflux/generators",
+  "version": "0.0.1-alpha",
+  "description": "Shared output generators for Routeflux.",
   "license": "MIT",
   "files": [
     "dist"
@@ -25,7 +25,7 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@routeforge/core": "workspace:*"
+    "@routeflux/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

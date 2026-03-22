@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, test, vi } from "vite-plus/test";
-import { readProjectContext } from "@routeforge/core";
+import { readProjectContext } from "@routeflux/core";
 import * as fileRouter from "../src/file-router";
 import * as staticExtractor from "../src/static-extractor";
 import { ReactAdapter, mergeStaticRouteMetadata } from "../src";

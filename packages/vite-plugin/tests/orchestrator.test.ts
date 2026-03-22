@@ -1,9 +1,9 @@
 import { describe, expect, test, vi } from "vite-plus/test";
-import type { Generator, Plugin } from "@routeforge/core";
-import { Container, SERVICE_KEYS } from "@routeforge/core";
-import * as adapterReact from "@routeforge/adapter-react";
-import * as adapterVue from "@routeforge/adapter-vue";
-import { PuppeteerCrawler } from "@routeforge/crawler-puppeteer";
+import type { Generator, Plugin } from "@routeflux/core";
+import { Container, SERVICE_KEYS } from "@routeflux/core";
+import * as adapterReact from "@routeflux/adapter-react";
+import * as adapterVue from "@routeflux/adapter-vue";
+import { PuppeteerCrawler } from "@routeflux/crawler-puppeteer";
 import {
   createDefaultAdapters,
   detectAdapter,

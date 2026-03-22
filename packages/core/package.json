@@ -1,7 +1,7 @@
 {
-  "name": "@routeforge/core",
-  "version": "0.0.0",
-  "description": "Shared types and contracts for Routeforge packages.",
+  "name": "@routeflux/core",
+  "version": "0.0.1-alpha",
+  "description": "Shared types and contracts for Routeflux packages.",
   "license": "MIT",
   "files": [
     "dist"

@@ -26,7 +26,7 @@ describe("crawlerPlugin", () => {
         configureServer?: (server: unknown) => (() => void) | void;
       };
 
-      expect(runtimePlugin.name).toBe("vite-plugin-routeforge");
+      expect(runtimePlugin.name).toBe("vite-plugin-routeflux");
       expect(runtimePlugin.apply).toBeUndefined();
       expect(typeof runtimePlugin.buildStart).toBe("function");
       expect(typeof runtimePlugin.buildEnd).toBe("function");
@@ -40,9 +40,9 @@ describe("crawlerPlugin", () => {
       runtimePlugin.buildEnd?.("ok");
       await runtimePlugin.closeBundle?.();
 
-      expect(log).toHaveBeenNthCalledWith(1, "[routeforge] Plugin initialized");
-      expect(log).toHaveBeenNthCalledWith(2, "[routeforge] Build complete");
-      expect(warn).toHaveBeenCalledWith("[routeforge] No baseUrl configured - skipping crawl");
+      expect(log).toHaveBeenNthCalledWith(1, "[routeflux] Plugin initialized");
+      expect(log).toHaveBeenNthCalledWith(2, "[routeflux] Build complete");
+      expect(warn).toHaveBeenCalledWith("[routeflux] No baseUrl configured - skipping crawl");
     } finally {
       log.mockRestore();
       warn.mockRestore();
@@ -60,8 +60,8 @@ describe("crawlerPlugin", () => {
 
     expectTypeOf(plugin).toEqualTypeOf<Plugin>();
     expect(plugins).toHaveLength(2);
-    expect(plugins[0]?.name).toBe("vite-plugin-routeforge");
-    expect(plugins[1]?.name).toBe("vite-plugin-routeforge");
+    expect(plugins[0]?.name).toBe("vite-plugin-routeflux");
+    expect(plugins[1]?.name).toBe("vite-plugin-routeflux");
     expect(defaultPlugin).toBeTypeOf("object");
   });
 
@@ -149,11 +149,11 @@ describe("crawlerPlugin", () => {
       expect(runCrawl).toHaveBeenCalledWith("https://localhost:5173", {});
       expect(log).toHaveBeenNthCalledWith(
         1,
-        "[routeforge] Dev server ready: https://localhost:5173",
+        "[routeflux] Dev server ready: https://localhost:5173",
       );
-      expect(log).toHaveBeenNthCalledWith(2, "[routeforge] Starting crawl...");
-      expect(log).toHaveBeenNthCalledWith(3, "[routeforge] Discovered 1 routes");
-      expect(log).toHaveBeenNthCalledWith(4, "[routeforge] Dev server closed");
+      expect(log).toHaveBeenNthCalledWith(2, "[routeflux] Starting crawl...");
+      expect(log).toHaveBeenNthCalledWith(3, "[routeflux] Discovered 1 routes");
+      expect(log).toHaveBeenNthCalledWith(4, "[routeflux] Dev server closed");
     } finally {
       runCrawl.mockRestore();
       log.mockRestore();
@@ -181,7 +181,7 @@ describe("crawlerPlugin", () => {
       httpServer.emit("listening");
       await Promise.resolve();
 
-      expect(error).toHaveBeenCalledWith("[routeforge] Crawl failed:", expect.any(Error));
+      expect(error).toHaveBeenCalledWith("[routeflux] Crawl failed:", expect.any(Error));
     } finally {
       runCrawl.mockRestore();
       error.mockRestore();
@@ -205,7 +205,7 @@ describe("crawlerPlugin", () => {
       plugin.configureServer?.({ httpServer, resolvedUrls: undefined });
       httpServer.emit("listening");
 
-      expect(log).toHaveBeenCalledWith("[routeforge] Dev server ready");
+      expect(log).toHaveBeenCalledWith("[routeflux] Dev server ready");
     } finally {
       log.mockRestore();
     }
@@ -241,7 +241,7 @@ describe("crawlerPlugin", () => {
       expect(runCrawlWithRuntime).toHaveBeenCalledWith("https://example.com", {
         baseUrl: "https://example.com",
       });
-      expect(log).toHaveBeenCalledWith("[routeforge] Discovered 1 routes");
+      expect(log).toHaveBeenCalledWith("[routeflux] Discovered 1 routes");
     } finally {
       runCrawlWithRuntime.mockRestore();
       log.mockRestore();
@@ -249,7 +249,7 @@ describe("crawlerPlugin", () => {
   });
 
   test("writes build crawl outputs into the configured outDir", async () => {
-    const outDir = await mkdtemp(join(tmpdir(), "routeforge-build-output-"));
+    const outDir = await mkdtemp(join(tmpdir(), "routeflux-build-output-"));
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const runCrawlWithRuntime = vi.spyOn(orchestrator, "runCrawlWithRuntime").mockResolvedValue({
       outputs: [
@@ -291,8 +291,8 @@ describe("crawlerPlugin", () => {
       await expect(readFile(join(outDir, "sitemap.xml"), "utf8")).resolves.toContain(
         "https://example.com",
       );
-      expect(log).toHaveBeenCalledWith(`[routeforge] Wrote output: ${join(outDir, "routes.json")}`);
-      expect(log).toHaveBeenCalledWith(`[routeforge] Wrote output: ${join(outDir, "sitemap.xml")}`);
+      expect(log).toHaveBeenCalledWith(`[routeflux] Wrote output: ${join(outDir, "routes.json")}`);
+      expect(log).toHaveBeenCalledWith(`[routeflux] Wrote output: ${join(outDir, "sitemap.xml")}`);
     } finally {
       runCrawlWithRuntime.mockRestore();
       log.mockRestore();
@@ -314,7 +314,7 @@ describe("crawlerPlugin", () => {
       await plugin.closeBundle?.();
 
       expect(runCrawl).not.toHaveBeenCalled();
-      expect(warn).toHaveBeenCalledWith("[routeforge] No baseUrl configured - skipping crawl");
+      expect(warn).toHaveBeenCalledWith("[routeflux] No baseUrl configured - skipping crawl");
     } finally {
       runCrawl.mockRestore();
       warn.mockRestore();
@@ -333,7 +333,7 @@ describe("crawlerPlugin", () => {
     try {
       await plugin.closeBundle?.();
 
-      expect(error).toHaveBeenCalledWith("[routeforge] Crawl failed:", expect.any(Error));
+      expect(error).toHaveBeenCalledWith("[routeflux] Crawl failed:", expect.any(Error));
     } finally {
       runCrawlWithRuntime.mockRestore();
       error.mockRestore();

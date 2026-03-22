@@ -1,7 +1,7 @@
 {
-  "name": "@routeforge/vite-plugin",
-  "version": "0.0.0",
-  "description": "Vite plugin scaffold for Routeforge.",
+  "name": "@routeflux/vite-plugin",
+  "version": "0.0.1-alpha",
+  "description": "Vite plugin scaffold for Routeflux.",
   "license": "MIT",
   "files": [
     "dist"
@@ -25,11 +25,11 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@routeforge/adapter-react": "workspace:*",
-    "@routeforge/adapter-vue": "workspace:*",
-    "@routeforge/core": "workspace:*",
-    "@routeforge/crawler-puppeteer": "workspace:*",
-    "@routeforge/generators": "workspace:*"
+    "@routeflux/adapter-react": "workspace:*",
+    "@routeflux/adapter-vue": "workspace:*",
+    "@routeflux/core": "workspace:*",
+    "@routeflux/crawler-puppeteer": "workspace:*",
+    "@routeflux/generators": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

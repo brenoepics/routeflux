@@ -1,4 +1,4 @@
-import type { ProjectContext, Route, RouteAdapter } from "@routeforge/core";
+import type { ProjectContext, Route, RouteAdapter } from "@routeflux/core";
 import { detectFileBasedRouting, extractFileBasedRoutes } from "./file-router";
 import { collectReactRoutes, injectReactRuntime } from "./runtime";
 import { extractPathsFromSourceFile, scanSourceFiles } from "./static-extractor";

@@ -1,7 +1,7 @@
 import type { Plugin, PluginContext } from "./interfaces";
 
 /**
- * Registers and initializes Routeforge plugins.
+ * Registers and initializes Routeflux plugins.
  */
 export class PluginManager {
   private readonly plugins: Plugin[] = [];

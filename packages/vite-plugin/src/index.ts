@@ -6,7 +6,7 @@ import { writeCrawlOutputs } from "./output";
 export type { CrawlerPluginOptions } from "./orchestrator";
 export { normalizeOutputTargets, writeCrawlOutputs } from "./output";
 
-const ROUTEFORGE_PLUGIN_NAME = "vite-plugin-routeforge";
+const ROUTEFLUX_PLUGIN_NAME = "vite-plugin-routeflux";
 
 /**
  * Resolves the best available dev server URLs for logging and orchestration.
@@ -32,14 +32,14 @@ export function resolveDevServerUrls(
 }
 
 /**
- * Creates the Routeforge Vite plugin scaffold.
+ * Creates the Routeflux Vite plugin scaffold.
  */
 export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
   let resolvedConfig: ResolvedConfig | undefined;
   let devServer: ViteDevServer | undefined;
 
   return {
-    name: ROUTEFORGE_PLUGIN_NAME,
+    name: ROUTEFLUX_PLUGIN_NAME,
 
     buildStart() {
       if (options.enabled === false) {
@@ -47,7 +47,7 @@ export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
       }
 
       void options;
-      console.log("[routeforge] Plugin initialized");
+      console.log("[routeflux] Plugin initialized");
     },
 
     configResolved(config) {
@@ -65,24 +65,24 @@ export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
         const urls = resolveDevServerUrls(server, resolvedConfig);
 
         if (urls.length === 0) {
-          console.log("[routeforge] Dev server ready");
+          console.log("[routeflux] Dev server ready");
           return;
         }
 
         const startUrl = urls[0]!;
 
-        console.log(`[routeforge] Dev server ready: ${urls.join(", ")}`);
-        console.log("[routeforge] Starting crawl...");
+        console.log(`[routeflux] Dev server ready: ${urls.join(", ")}`);
+        console.log("[routeflux] Starting crawl...");
 
         try {
           const result = await orchestrator.runCrawl(startUrl, options);
-          console.log(`[routeforge] Discovered ${result.routes.length} routes`);
+          console.log(`[routeflux] Discovered ${result.routes.length} routes`);
         } catch (error) {
-          console.error("[routeforge] Crawl failed:", error);
+          console.error("[routeflux] Crawl failed:", error);
         }
       };
       const onClose = () => {
-        console.log("[routeforge] Dev server closed");
+        console.log("[routeflux] Dev server closed");
       };
 
       server.httpServer?.once("listening", onListening);
@@ -100,7 +100,7 @@ export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
         return;
       }
 
-      console.log("[routeforge] Build complete");
+      console.log("[routeflux] Build complete");
     },
 
     async closeBundle() {
@@ -111,13 +111,13 @@ export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
       const baseUrl = resolvedConfig?.server?.origin ?? options.baseUrl;
 
       if (!baseUrl) {
-        console.warn("[routeforge] No baseUrl configured - skipping crawl");
+        console.warn("[routeflux] No baseUrl configured - skipping crawl");
         return;
       }
 
       try {
         const execution = await orchestrator.runCrawlWithRuntime(baseUrl, options);
-        console.log(`[routeforge] Discovered ${execution.result.routes.length} routes`);
+        console.log(`[routeflux] Discovered ${execution.result.routes.length} routes`);
 
         if (resolvedConfig?.build?.outDir) {
           const outDir = resolvedConfig.build.outDir;
@@ -126,11 +126,11 @@ export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
           });
 
           for (const filePath of writtenFiles) {
-            console.log(`[routeforge] Wrote output: ${filePath}`);
+            console.log(`[routeflux] Wrote output: ${filePath}`);
           }
         }
       } catch (error) {
-        console.error("[routeforge] Crawl failed:", error);
+        console.error("[routeflux] Crawl failed:", error);
       }
 
       void resolvedConfig;

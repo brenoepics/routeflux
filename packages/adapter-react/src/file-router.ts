@@ -1,6 +1,6 @@
 import { readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { mergeRouteMeta, type ProjectContext, type Route } from "@routeforge/core";
+import { mergeRouteMeta, type ProjectContext, type Route } from "@routeflux/core";
 
 const FILE_EXTENSIONS_PATTERN = /\.(?:[cm]?[jt]sx?)$/;
 const FILE_BASED_PLUGIN = "vite-plugin-pages";

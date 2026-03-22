@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, test } from "vite-plus/test";
-import type { Generator } from "@routeforge/core";
+import type { Generator } from "@routeflux/core";
 import {
   GENERATOR_OUTPUTS,
   RoutesJsonGenerator,

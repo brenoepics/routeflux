@@ -1,7 +1,7 @@
 {
-  "name": "@routeforge/crawler-puppeteer",
-  "version": "0.0.0",
-  "description": "Puppeteer-based crawler for Routeforge.",
+  "name": "@routeflux/crawler-puppeteer",
+  "version": "0.0.1-alpha",
+  "description": "Puppeteer-based crawler for Routeflux.",
   "license": "MIT",
   "files": [
     "dist"
@@ -25,7 +25,7 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@routeforge/core": "workspace:*"
+    "@routeflux/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

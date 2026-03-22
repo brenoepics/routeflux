@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import type { Output } from "@routeforge/core";
-import type { GeneratorOutputTarget } from "@routeforge/generators";
+import type { Output } from "@routeflux/core";
+import type { GeneratorOutputTarget } from "@routeflux/generators";
 
-export type RouteforgeOutputTarget = GeneratorOutputTarget;
-export { normalizeOutputTargets } from "@routeforge/generators";
+export type RoutefluxOutputTarget = GeneratorOutputTarget;
+export { normalizeOutputTargets } from "@routeflux/generators";
 
 /**
  * Writes configured crawl outputs into the target directory.

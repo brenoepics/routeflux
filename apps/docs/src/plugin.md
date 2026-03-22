@@ -4,7 +4,7 @@
 
 ```ts
 import { defineConfig } from "vite";
-import { crawlerPlugin } from "@routeforge/vite-plugin";
+import { crawlerPlugin } from "@routeflux/vite-plugin";
 
 export default defineConfig({
   plugins: [crawlerPlugin()],
@@ -15,7 +15,7 @@ export default defineConfig({
 
 ```ts
 import { defineConfig } from "vite";
-import { crawlerPlugin } from "@routeforge/vite-plugin";
+import { crawlerPlugin } from "@routeflux/vite-plugin";
 
 export default defineConfig({
   server: {
@@ -43,7 +43,7 @@ export default defineConfig({
 | `generators` | `Generator[]`        | Custom generator overrides registered through the container.                                |
 | `adapter`    | `RouteAdapter`       | Explicit adapter override.                                                                  |
 | `adapters`   | `RouteAdapter[]`     | Additional adapter candidates checked before the built-in defaults.                         |
-| `plugins`    | `Plugin[]`           | Routeforge plugins that can reconfigure services through the container.                     |
+| `plugins`    | `Plugin[]`           | Routeflux plugins that can reconfigure services through the container.                      |
 
 ## Lifecycle behavior
 
@@ -62,7 +62,7 @@ export default defineConfig({
 
 ## Service orchestration
 
-The plugin now resolves services through the Routeforge container:
+The plugin resolves services through the Routeflux container:
 
 - adapter detection and static extraction happen first
 - the crawler receives the adapter plus static routes

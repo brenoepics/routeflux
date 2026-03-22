@@ -2,19 +2,15 @@
 
 ## What adapters do
 
-Adapters tell Routeforge how to understand a project before the crawler runs.
+Adapters tell Routeflux how to understand a project.
 
-They can:
-
-- detect whether a project matches a framework
-- extract static routes from source files
-- enhance runtime crawling with framework-specific hooks
+They can detect a framework, extract static routes, and enhance runtime crawling.
 
 ## Built-in adapters
 
 ### React
 
-`@routeforge/adapter-react` currently supports:
+`@routeflux/adapter-react` currently supports:
 
 - React Router detection through `react-router` and `react-router-dom`
 - file-based route extraction from `pages/` and `src/pages/`
@@ -22,14 +18,14 @@ They can:
 
 ### Vue
 
-`@routeforge/adapter-vue` currently supports:
+`@routeflux/adapter-vue` currently supports:
 
 - Vue + Vue Router detection through `vue` and `vue-router`
 - static route extraction from `createRouter({ routes: [...] })` definitions
 
 ## Auto-detection order
 
-The Vite plugin uses a default adapter registry and selects the first adapter whose `detect()` method returns `true`.
+The Vite plugin picks the first adapter whose `detect()` returns `true`.
 
 Today the default order is:
 
@@ -54,7 +50,7 @@ crawlerPlugin({
 
 ## Static + runtime merge
 
-When an adapter finds a route statically and the crawler later confirms it at runtime, Routeforge merges both entries and upgrades the route source to `hybrid`.
+When an adapter finds a route statically and the crawler confirms it at runtime, Routeflux upgrades it to `hybrid`.
 
 That merged route also keeps metadata such as:
 

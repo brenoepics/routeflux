@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { parse } from "@babel/parser";
 import traverse, { type NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
-import type { Route } from "@routeforge/core";
+import type { Route } from "@routeflux/core";
 
 type RawRoute = {
   children?: RawRoute[];

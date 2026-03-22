@@ -9,7 +9,7 @@ import {
   type CrawlResult,
   type Route,
   type RouteAdapter,
-} from "@routeforge/core";
+} from "@routeflux/core";
 import { groupRoutesByTemplate, toRoutesFromGroups } from "./param-extractor";
 import { DEFAULT_MAX_PAGES, isSameOrigin, normalizeUrl, toPathname } from "./utils";
 
@@ -160,19 +160,19 @@ export class PuppeteerCrawler implements Crawler {
   async injectHistoryCapture(page: Pick<Page, "evaluateOnNewDocument">): Promise<void> {
     await page.evaluateOnNewDocument(() => {
       if (
-        (window as typeof window & { __ROUTEFORGE_HISTORY_CAPTURED__?: boolean })
-          .__ROUTEFORGE_HISTORY_CAPTURED__
+        (window as typeof window & { __ROUTEFLUX_HISTORY_CAPTURED__?: boolean })
+          .__ROUTEFLUX_HISTORY_CAPTURED__
       ) {
         return;
       }
 
       const routeWindow = window as typeof window & {
         __ROUTES__?: string[];
-        __ROUTEFORGE_HISTORY_CAPTURED__?: boolean;
+        __ROUTEFLUX_HISTORY_CAPTURED__?: boolean;
         __ROUTE_CHANGES__?: HistoryChange[];
       };
 
-      routeWindow.__ROUTEFORGE_HISTORY_CAPTURED__ = true;
+      routeWindow.__ROUTEFLUX_HISTORY_CAPTURED__ = true;
       routeWindow.__ROUTES__ = routeWindow.__ROUTES__ ?? [];
       routeWindow.__ROUTE_CHANGES__ = routeWindow.__ROUTE_CHANGES__ ?? [];
 

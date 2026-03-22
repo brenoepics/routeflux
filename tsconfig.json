@@ -4,7 +4,7 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "paths": {
-      "@routeforge/*": ["./packages/*/src/index.ts"]
+      "@routeflux/*": ["./packages/*/src/index.ts"]
     },
     "allowImportingTsExtensions": true,
     "esModuleInterop": true

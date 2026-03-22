@@ -1,7 +1,7 @@
 {
-  "name": "@routeforge/adapter-vue",
-  "version": "0.0.0",
-  "description": "Vue route adapter for Routeforge.",
+  "name": "@routeflux/adapter-vue",
+  "version": "0.0.1-alpha",
+  "description": "Vue route adapter for Routeflux.",
   "license": "MIT",
   "files": [
     "dist"
@@ -28,7 +28,7 @@
     "@babel/parser": "catalog:",
     "@babel/traverse": "catalog:",
     "@babel/types": "catalog:",
-    "@routeforge/core": "workspace:*"
+    "@routeflux/core": "workspace:*"
   },
   "devDependencies": {
     "@types/babel__traverse": "catalog:",

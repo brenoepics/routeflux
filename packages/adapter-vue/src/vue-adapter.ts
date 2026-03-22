@@ -1,4 +1,4 @@
-import type { ProjectContext, Route, RouteAdapter } from "@routeforge/core";
+import type { ProjectContext, Route, RouteAdapter } from "@routeflux/core";
 import { extractPathsFromSourceFile, scanSourceFiles } from "./static-extractor";
 
 const AST_STATIC_SOURCE = "vue-router-ast";

@@ -1,4 +1,4 @@
-import type { Route, RouteSource } from "@routeforge/core";
+import type { Route, RouteSource } from "@routeflux/core";
 
 /**
  * Matches numeric identifier path segments.

@@ -61,7 +61,7 @@ describe("PuppeteerCrawler", () => {
     } as unknown as Window &
       typeof globalThis & {
         __ROUTES__?: string[];
-        __ROUTEFORGE_HISTORY_CAPTURED__?: boolean;
+        __ROUTEFLUX_HISTORY_CAPTURED__?: boolean;
         __ROUTE_CHANGES__?: Array<{ path: string; timestamp: number; type: string }>;
       };
     const historyStub = {

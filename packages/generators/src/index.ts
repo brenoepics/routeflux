@@ -1,4 +1,4 @@
-import type { Generator, Output, Route } from "@routeforge/core";
+import type { Generator, Output, Route } from "@routeflux/core";
 
 export const GENERATOR_OUTPUTS = ["routes.json", "sitemap.xml"] as const;
 

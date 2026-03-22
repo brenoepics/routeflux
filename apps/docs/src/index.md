@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "React Site Mapper"
-  text: "Crawl-driven docs and outputs for React SPAs"
-  tagline: Generate route inventories and sitemaps from real application routes discovered through adapters, static analysis, and runtime crawling.
+  text: "Routes from real app behavior"
+  tagline: Static extraction, runtime crawling, simple outputs.
   icon: "🗺️"
   actions:
     - theme: brand
@@ -16,23 +16,22 @@ hero:
 
 features:
   - title: Static + runtime discovery
-    details: Combine framework-aware extraction with browser crawling to uncover routes that are not obvious from source code alone.
+    details: Find routes from source and live navigation.
   - title: Framework adapters
-    details: Auto-detect supported projects and preload static routes for React today, with Vue routing support now available in the adapter registry.
+    details: Auto-detect React and Vue projects.
   - title: Output generation
-    details: Turn normalized route data into `routes.json` and `sitemap.xml` through shared generator packages that can be reused outside the Vite plugin.
+    details: Generate `routes.json` and `sitemap.xml`.
   - title: Built for monorepos
-    details: Keep adapters, crawlers, plugins, and docs in one pnpm workspace with shared tooling.
+    details: Keep adapters, crawlers, plugins, and docs together.
 ---
 
 > [!WARNING]
 > This project is under heavy development and is not ready for production use.
 
-React Site Mapper is an early-stage toolkit for React single-page applications that need accurate route maps and downstream outputs without manual maintenance.
+Current packages:
 
-The current workspace already includes:
-
-- `@routeforge/vite-plugin` for Vite integration
-- `@routeforge/crawler-puppeteer` for runtime crawling
-- `@routeforge/adapter-react` and `@routeforge/adapter-vue` for framework detection and static extraction
-- `@routeforge/generators` for shared `routes.json` and `sitemap.xml` output generation
+- `@routeflux/vite-plugin`
+- `@routeflux/crawler-puppeteer`
+- `@routeflux/adapter-react`
+- `@routeflux/adapter-vue`
+- `@routeflux/generators`
