@@ -307,7 +307,28 @@ describe("PuppeteerCrawler", () => {
         path: "/users/:id",
         params: ["id"],
         source: "runtime",
-        meta: { examples: ["/users/123", "/users/456"] },
+        meta: {
+          alternates: [],
+          canonicalPath: undefined,
+          canonicalUrl: undefined,
+          changefreq: undefined,
+          description: undefined,
+          examples: ["/users/123", "/users/456"],
+          images: [],
+          lastmod: undefined,
+          noindex: undefined,
+          priority: undefined,
+          robots: undefined,
+          runtimeFiles: [],
+          runtimeSources: [],
+          staticFiles: [],
+          staticSources: [],
+          status: undefined,
+          statusCode: undefined,
+          title: undefined,
+          video: [],
+          videos: [],
+        },
       },
     ]);
   });
@@ -329,33 +350,29 @@ describe("PuppeteerCrawler", () => {
         return [];
       }
 
-      if (source.includes('meta[name="description"]')) {
-        return currentUrl === "https://example.com/"
-          ? {
-              alternates: [{ hreflang: "en", href: "https://example.com/" }],
-              canonicalUrl: "https://example.com/?utm_source=ads",
-              description: "Home page",
-              images: [{ loc: "https://example.com/hero.png", title: "Hero" }],
-              lastmod: "2026-03-20",
-              noindex: false,
-              robots: "index,follow",
-              runtimeSources: ["crawler-page"],
-              title: "Routeflux",
-            }
-          : {
-              alternates: [],
-              canonicalUrl: undefined,
-              description: undefined,
-              images: [],
-              lastmod: undefined,
-              noindex: undefined,
-              robots: undefined,
-              runtimeSources: ["crawler-page"],
-              title: undefined,
-            };
-      }
-
-      return [];
+      return currentUrl === "https://example.com/"
+        ? {
+            alternates: [{ hreflang: "en", href: "https://example.com/" }],
+            canonicalUrl: "https://example.com/?utm_source=ads",
+            description: "Home page",
+            images: [{ loc: "https://example.com/hero.png", title: "Hero" }],
+            lastmod: "2026-03-20",
+            noindex: false,
+            robots: "index,follow",
+            runtimeSources: ["crawler-page"],
+            title: "Routeflux",
+          }
+        : {
+            alternates: [],
+            canonicalUrl: undefined,
+            description: undefined,
+            images: [],
+            lastmod: undefined,
+            noindex: undefined,
+            robots: undefined,
+            runtimeSources: ["crawler-page"],
+            title: undefined,
+          };
     });
 
     const crawler = new PuppeteerCrawler({ launch });
@@ -434,11 +451,26 @@ describe("PuppeteerCrawler", () => {
         params: ["id"],
         source: "hybrid",
         meta: {
+          alternates: [],
+          canonicalPath: undefined,
+          canonicalUrl: undefined,
+          changefreq: undefined,
+          description: undefined,
           examples: ["/users/123"],
+          images: [],
+          lastmod: undefined,
+          noindex: undefined,
+          priority: undefined,
+          robots: undefined,
           runtimeFiles: [],
           runtimeSources: ["react-router-runtime"],
           staticFiles: [],
           staticSources: ["react-router-ast"],
+          status: undefined,
+          statusCode: undefined,
+          title: undefined,
+          video: [],
+          videos: [],
         },
       },
     ]);
@@ -484,11 +516,26 @@ describe("PuppeteerCrawler", () => {
         params: ["id"],
         source: "runtime",
         meta: {
+          alternates: [],
+          canonicalPath: undefined,
+          canonicalUrl: undefined,
+          changefreq: undefined,
+          description: undefined,
           examples: ["/users/123"],
+          images: [],
+          lastmod: undefined,
+          noindex: undefined,
+          priority: undefined,
+          robots: undefined,
           runtimeFiles: [],
           runtimeSources: ["react-router-runtime"],
           staticFiles: [],
           staticSources: [],
+          status: undefined,
+          statusCode: undefined,
+          title: undefined,
+          video: [],
+          videos: [],
         },
       },
     ]);

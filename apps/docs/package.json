@@ -1,6 +1,6 @@
 {
   "name": "docs",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1-alpha.1",
   "private": true,
   "description": "Project documentation site for Routeflux.",
   "type": "module",

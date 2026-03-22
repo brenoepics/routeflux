@@ -1,6 +1,6 @@
 {
   "name": "@routeflux/generators",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1-alpha.1",
   "description": "Shared output generators for Routeflux.",
   "license": "MIT",
   "files": [

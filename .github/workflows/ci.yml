@@ -31,6 +31,14 @@ jobs:
       - name: Install dependencies
         run: vp install
 
+      - name: Build packages in dependency order
+        run: |
+          vp run core#build
+          vp run adapter-react#build
+          vp run adapter-vue#build
+          vp run crawler-puppeteer#build
+          vp run generators#build
+
       - name: Setup Chrome
         id: chrome
         uses: browser-actions/setup-chrome@4f8e94349a351df0f048634f25fec36c3c91eded # v2.1.1
