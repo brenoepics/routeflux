@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import type { Browser, Page } from "puppeteer";
 import { PuppeteerCrawler } from "../src";
 
-type MockPage = Pick<Page, "goto" | "evaluate">;
+type MockPage = Pick<Page, "evaluate" | "evaluateOnNewDocument" | "goto">;
 type MockBrowser = Pick<Browser, "newPage" | "close">;
 
 describe("PuppeteerCrawler", () => {
   const launch = vi.fn();
   const goto = vi.fn();
   const evaluate = vi.fn();
+  const evaluateOnNewDocument = vi.fn();
   const close = vi.fn();
   const newPage = vi.fn();
 
@@ -16,12 +17,14 @@ describe("PuppeteerCrawler", () => {
     launch.mockReset();
     goto.mockReset();
     evaluate.mockReset();
+    evaluateOnNewDocument.mockReset();
     close.mockReset();
     newPage.mockReset();
 
     const page: MockPage = {
       goto,
       evaluate,
+      evaluateOnNewDocument,
     };
     const browser: MockBrowser = {
       newPage,
@@ -31,6 +34,77 @@ describe("PuppeteerCrawler", () => {
     newPage.mockResolvedValue(page);
     close.mockResolvedValue(undefined);
     launch.mockResolvedValue(browser);
+    evaluateOnNewDocument.mockResolvedValue(undefined);
+  });
+
+  test("injects history capture hooks for push, replace, and pop navigation", async () => {
+    let injectedScript: (() => void) | undefined;
+
+    evaluateOnNewDocument.mockImplementation(async (script: () => void) => {
+      injectedScript = script;
+    });
+
+    const crawler = new PuppeteerCrawler({ launch });
+    await crawler.injectHistoryCapture({ evaluateOnNewDocument });
+
+    const listeners = new Map<string, Array<() => void>>();
+    const location = { pathname: "/" };
+    const routeWindow = {
+      addEventListener(event: string, listener: () => void) {
+        listeners.set(event, [...(listeners.get(event) ?? []), listener]);
+      },
+      location,
+    } as unknown as Window &
+      typeof globalThis & {
+        __ROUTES__?: string[];
+        __ROUTEFORGE_HISTORY_CAPTURED__?: boolean;
+        __ROUTE_CHANGES__?: Array<{ path: string; timestamp: number; type: string }>;
+      };
+    const historyStub = {
+      pushState(_data: unknown, _unused: string, url?: string | URL | null) {
+        location.pathname = new URL(
+          String(url ?? location.pathname),
+          "https://example.com",
+        ).pathname;
+      },
+      replaceState(_data: unknown, _unused: string, url?: string | URL | null) {
+        location.pathname = new URL(
+          String(url ?? location.pathname),
+          "https://example.com",
+        ).pathname;
+      },
+    } as unknown as History;
+
+    vi.stubGlobal("window", routeWindow);
+    vi.stubGlobal("history", historyStub);
+
+    try {
+      injectedScript?.();
+      injectedScript?.();
+      history.pushState({}, "", "/dashboard");
+      history.replaceState({}, "", new URL("https://example.com/settings"));
+      routeWindow.location.pathname = "/profile";
+      listeners.get("popstate")?.[0]?.();
+      history.pushState({}, "", undefined);
+
+      expect(listeners.get("popstate")).toHaveLength(1);
+      expect(routeWindow.__ROUTES__).toEqual([
+        "/dashboard",
+        "https://example.com/settings",
+        "/profile",
+        "/profile",
+      ]);
+      expect(
+        routeWindow.__ROUTE_CHANGES__?.map((change) => ({ path: change.path, type: change.type })),
+      ).toEqual([
+        { path: "/dashboard", type: "push" },
+        { path: "https://example.com/settings", type: "replace" },
+        { path: "/profile", type: "pop" },
+        { path: "/profile", type: "push" },
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   test("extracts only same-origin routes and records duration", async () => {
@@ -59,16 +133,21 @@ describe("PuppeteerCrawler", () => {
       currentUrl = url;
       visitedOrder.push(url);
     });
-    evaluate.mockImplementation(async () => pages[currentUrl] ?? []);
+    evaluate.mockImplementation(async (script: () => unknown) => {
+      return script.toString().includes("document.querySelectorAll")
+        ? (pages[currentUrl] ?? [])
+        : [];
+    });
 
     const now = vi.spyOn(Date, "now");
     now.mockReturnValueOnce(1_000).mockReturnValueOnce(1_150);
 
     try {
       const crawler = new PuppeteerCrawler({ launch });
-      const result = await crawler.crawl("https://example.com", {});
+      const result = await crawler.crawl("https://example.com", { interactionDelay: 0 });
 
       expect(launch).toHaveBeenCalledWith({ headless: true });
+      expect(evaluateOnNewDocument).toHaveBeenCalledTimes(1);
       expect(visitedOrder).toEqual([
         "https://example.com/",
         "https://example.com/about",
@@ -109,10 +188,14 @@ describe("PuppeteerCrawler", () => {
       currentUrl = url;
       visitedOrder.push(url);
     });
-    evaluate.mockImplementation(async () => pages[currentUrl] ?? []);
+    evaluate.mockImplementation(async (script: () => unknown) => {
+      return script.toString().includes("document.querySelectorAll")
+        ? (pages[currentUrl] ?? [])
+        : [];
+    });
 
     const crawler = new PuppeteerCrawler({ launch });
-    const result = await crawler.crawl("https://example.com", {});
+    const result = await crawler.crawl("https://example.com", { interactionDelay: 0 });
 
     expect(visitedOrder).toEqual(["https://example.com/", "https://example.com/about"]);
     expect(result.routes).toEqual([
@@ -134,10 +217,14 @@ describe("PuppeteerCrawler", () => {
       currentUrl = url;
       visitedOrder.push(url);
     });
-    evaluate.mockImplementation(async () => pages[currentUrl] ?? []);
+    evaluate.mockImplementation(async (script: () => unknown) => {
+      return script.toString().includes("document.querySelectorAll")
+        ? (pages[currentUrl] ?? [])
+        : [];
+    });
 
     const crawler = new PuppeteerCrawler({ launch });
-    const result = await crawler.crawl("https://example.com", { maxDepth: 1 });
+    const result = await crawler.crawl("https://example.com", { interactionDelay: 0, maxDepth: 1 });
 
     expect(visitedOrder).toEqual(["https://example.com/", "https://example.com/level-1"]);
     expect(result.routes).toEqual([
@@ -164,10 +251,14 @@ describe("PuppeteerCrawler", () => {
       currentUrl = url;
       visitedOrder.push(url);
     });
-    evaluate.mockImplementation(async () => pages[currentUrl] ?? []);
+    evaluate.mockImplementation(async (script: () => unknown) => {
+      return script.toString().includes("document.querySelectorAll")
+        ? (pages[currentUrl] ?? [])
+        : [];
+    });
 
     const crawler = new PuppeteerCrawler({ launch });
-    const result = await crawler.crawl("https://example.com", { maxPages: 2 });
+    const result = await crawler.crawl("https://example.com", { interactionDelay: 0, maxPages: 2 });
 
     expect(visitedOrder).toEqual(["https://example.com/", "https://example.com/one"]);
     expect(result.routes).toEqual([
@@ -184,7 +275,7 @@ describe("PuppeteerCrawler", () => {
 
     try {
       const crawler = new PuppeteerCrawler({ launch });
-      const result = await crawler.crawl("https://example.com", {});
+      const result = await crawler.crawl("https://example.com", { interactionDelay: 0 });
 
       expect(evaluate).not.toHaveBeenCalled();
       expect(result).toEqual({
@@ -202,7 +293,7 @@ describe("PuppeteerCrawler", () => {
     goto.mockRejectedValue("plain failure");
 
     const crawler = new PuppeteerCrawler({ launch });
-    const result = await crawler.crawl("https://example.com", {});
+    const result = await crawler.crawl("https://example.com", { interactionDelay: 0 });
 
     expect(result.errors).toEqual([{ url: "https://example.com/", message: "plain failure" }]);
     expect(close).toHaveBeenCalledTimes(1);
@@ -213,7 +304,9 @@ describe("PuppeteerCrawler", () => {
 
     const crawler = new PuppeteerCrawler({ launch });
 
-    await expect(crawler.crawl("https://example.com", {})).rejects.toThrowError("Launch failed");
+    await expect(
+      crawler.crawl("https://example.com", { interactionDelay: 0 }),
+    ).rejects.toThrowError("Launch failed");
     expect(close).not.toHaveBeenCalled();
   });
 });

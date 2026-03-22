@@ -116,6 +116,10 @@ export type CrawlOptions = {
    */
   timeout?: number;
   /**
+   * Additional delay after navigation settles to capture client-side route changes.
+   */
+  interactionDelay?: number;
+  /**
    * Optional allowlist of domains the crawler may visit.
    */
   allowedDomains?: string[];

@@ -9,9 +9,17 @@ import {
 } from "@routeforge/core";
 import { DEFAULT_MAX_PAGES, isSameOrigin, normalizeUrl, toPathname } from "./utils";
 
+type HistoryChange = {
+  path: string;
+  timestamp: number;
+  type: "push" | "replace" | "pop";
+};
+
 type BrowserLauncher = {
   launch(options: { headless: boolean }): Promise<Browser>;
 };
+
+const DEFAULT_INTERACTION_DELAY = 500;
 
 /**
  * Crawls a page with Puppeteer and extracts same-origin anchor routes.
@@ -31,11 +39,13 @@ export class PuppeteerCrawler implements Crawler {
     const queue: Array<{ url: string; depth: number }> = [{ url: normalizedStartUrl, depth: 0 }];
     const maxDepth = options.maxDepth ?? DEFAULT_CRAWL_MAX_DEPTH;
     const maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
+    const interactionDelay = options.interactionDelay ?? DEFAULT_INTERACTION_DELAY;
     let browser: Browser | undefined;
 
     try {
       browser = await this.browserLauncher.launch({ headless: true });
       const page = await browser.newPage();
+      await this.injectHistoryCapture(page);
 
       while (queue.length > 0) {
         const { url, depth } = queue.shift()!;
@@ -54,7 +64,7 @@ export class PuppeteerCrawler implements Crawler {
 
         visited.add(url);
 
-        const links = await this.extractLinks(page, url, errors);
+        const links = await this.visitPage(page, url, errors, interactionDelay);
 
         if (!links) {
           continue;
@@ -87,10 +97,69 @@ export class PuppeteerCrawler implements Crawler {
     }
   }
 
-  private async extractLinks(
+  /**
+   * Injects client-side history interception before page scripts execute.
+   */
+  async injectHistoryCapture(page: Pick<Page, "evaluateOnNewDocument">): Promise<void> {
+    await page.evaluateOnNewDocument(() => {
+      if (
+        (window as typeof window & { __ROUTEFORGE_HISTORY_CAPTURED__?: boolean })
+          .__ROUTEFORGE_HISTORY_CAPTURED__
+      ) {
+        return;
+      }
+
+      const routeWindow = window as typeof window & {
+        __ROUTES__?: string[];
+        __ROUTEFORGE_HISTORY_CAPTURED__?: boolean;
+        __ROUTE_CHANGES__?: HistoryChange[];
+      };
+
+      routeWindow.__ROUTEFORGE_HISTORY_CAPTURED__ = true;
+      routeWindow.__ROUTES__ = routeWindow.__ROUTES__ ?? [];
+      routeWindow.__ROUTE_CHANGES__ = routeWindow.__ROUTE_CHANGES__ ?? [];
+
+      const pushCapturedRoute = (path: string | URL | null | undefined) => {
+        const resolvedPath =
+          typeof path === "string" || path instanceof URL ? String(path) : window.location.pathname;
+        routeWindow.__ROUTES__?.push(resolvedPath);
+        return resolvedPath;
+      };
+
+      const pushChange = (type: HistoryChange["type"], path: string) => {
+        routeWindow.__ROUTE_CHANGES__?.push({
+          type,
+          path,
+          timestamp: Date.now(),
+        });
+      };
+
+      const originalPushState = history.pushState.bind(history);
+      history.pushState = function (...args) {
+        const path = pushCapturedRoute(args[2]);
+        pushChange("push", path);
+        return originalPushState(...args);
+      };
+
+      const originalReplaceState = history.replaceState.bind(history);
+      history.replaceState = function (...args) {
+        const path = pushCapturedRoute(args[2]);
+        pushChange("replace", path);
+        return originalReplaceState(...args);
+      };
+
+      window.addEventListener("popstate", () => {
+        const path = pushCapturedRoute(window.location.pathname);
+        pushChange("pop", path);
+      });
+    });
+  }
+
+  private async visitPage(
     page: Page,
     startUrl: string,
     errors: CrawlError[],
+    interactionDelay: number,
   ): Promise<string[] | undefined> {
     try {
       await page.goto(startUrl, { waitUntil: "networkidle2" });
@@ -102,11 +171,45 @@ export class PuppeteerCrawler implements Crawler {
       return undefined;
     }
 
+    if (interactionDelay > 0) {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, interactionDelay);
+      });
+    }
+
+    const [anchorLinks, dynamicPaths] = await Promise.all([
+      this.extractAnchorLinks(page),
+      this.collectDynamicRoutes(page),
+    ]);
+
+    return [...anchorLinks, ...dynamicPaths.map((path) => new URL(path, startUrl).toString())];
+  }
+
+  private async extractAnchorLinks(page: Pick<Page, "evaluate">): Promise<string[]> {
     /* c8 ignore start -- executed in the browser context during crawling */
     return page.evaluate(() => {
       return Array.from(document.querySelectorAll("a"))
         .map((anchor) => anchor.href)
         .filter((href) => href.startsWith("http"));
+    });
+    /* c8 ignore stop */
+  }
+
+  private async collectDynamicRoutes(page: Pick<Page, "evaluate">): Promise<string[]> {
+    /* c8 ignore start -- executed in the browser context during crawling */
+    return page.evaluate(() => {
+      const routeWindow = window as typeof window & {
+        __ROUTES__?: string[];
+        __ROUTE_CHANGES__?: HistoryChange[];
+      };
+      const capturedRoutes = routeWindow.__ROUTES__ ?? [];
+      const capturedChanges = routeWindow.__ROUTE_CHANGES__ ?? [];
+      const paths = [...capturedRoutes, ...capturedChanges.map((change) => change.path)];
+
+      routeWindow.__ROUTES__ = [];
+      routeWindow.__ROUTE_CHANGES__ = [];
+
+      return paths;
     });
     /* c8 ignore stop */
   }

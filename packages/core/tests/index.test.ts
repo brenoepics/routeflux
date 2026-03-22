@@ -225,6 +225,7 @@ describe("shared type contracts", () => {
       maxDepth?: number;
       maxPages?: number;
       timeout?: number;
+      interactionDelay?: number;
       allowedDomains?: string[];
       strategy?: CrawlStrategy;
       cookies?: CookieDefinition[];
@@ -302,6 +303,7 @@ describe("shared interfaces", () => {
       maxDepth: 3,
       maxPages: 50,
       timeout: 1_000,
+      interactionDelay: 500,
       allowedDomains: ["example.com"],
       strategy: "runtime",
       cookies: [{ name: "session", value: "abc123" }],

@@ -104,4 +104,67 @@ describe("PuppeteerCrawler integration", () => {
       { path: "/docs/getting-started", source: "runtime" },
     ]);
   }, 30_000);
+
+  test("captures SPA history pushState and replaceState routes", async () => {
+    const pages: Record<string, string> = {
+      "/spa": `
+        <!doctype html>
+        <html lang="en">
+          <body>
+            <script>
+              window.setTimeout(() => {
+                history.pushState({}, "", "/spa/dashboard");
+                history.replaceState({}, "", "/spa/settings");
+              }, 50);
+            </script>
+          </body>
+        </html>
+      `,
+      "/spa/dashboard": `<!doctype html><html lang="en"><body><p>Dashboard</p></body></html>`,
+      "/spa/settings": `<!doctype html><html lang="en"><body><p>Settings</p></body></html>`,
+    };
+    const server = createServer((request, response) => {
+      const requestUrl = new URL(request.url ?? "/spa", "http://127.0.0.1");
+      const html = pages[requestUrl.pathname] ?? pages["/spa"];
+
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(html);
+    });
+
+    const address = await new Promise<string>((resolve, reject) => {
+      server.listen(0, "127.0.0.1", () => {
+        const serverAddress = server.address();
+        if (serverAddress && typeof serverAddress === "object") {
+          resolve(`http://127.0.0.1:${serverAddress.port}/spa`);
+          return;
+        }
+
+        reject(new Error("Failed to resolve SPA fixture server address"));
+      });
+      server.once("error", reject);
+    });
+
+    stopServer = async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          resolve();
+        });
+      });
+    };
+
+    const crawler = new PuppeteerCrawler();
+    const result = await crawler.crawl(address, {});
+
+    expect(result.errors).toBeUndefined();
+    expect(result.routes).toEqual([
+      { path: "/spa", source: "runtime" },
+      { path: "/spa/dashboard", source: "runtime" },
+      { path: "/spa/settings", source: "runtime" },
+    ]);
+  }, 30_000);
 });
