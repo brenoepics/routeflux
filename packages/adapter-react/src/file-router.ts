@@ -5,6 +5,25 @@ import type { ProjectContext, Route } from "@routeforge/core";
 const FILE_EXTENSIONS_PATTERN = /\.(?:[cm]?[jt]sx?)$/;
 const FILE_BASED_PLUGIN = "vite-plugin-pages";
 const PAGES_DIRECTORIES = ["pages", join("src", "pages")];
+const ROUTE_GROUP_PATTERN = /^\(.+\)$/;
+const CATCH_ALL_SEGMENT_PATTERN = /^\[\.\.\.(\w+)\]$/;
+const OPTIONAL_CATCH_ALL_SEGMENT_PATTERN = /^\[\[\.\.\.(\w+)\]\]$/;
+const DYNAMIC_SEGMENT_PATTERN = /^\[(\w+)\]$/;
+const IGNORED_PAGE_FILES = new Set([
+  "_app",
+  "_document",
+  "_error",
+  "_layout",
+  "layout",
+  "template",
+  "loading",
+  "error",
+  "default",
+  "not-found",
+  "route",
+]);
+
+const FILE_ROUTING_SOURCE = "file-based-routing";
 
 /**
  * Detects file-based React routing via directory conventions or vite-plugin-pages.
@@ -29,12 +48,12 @@ export function detectFileBasedRouting(ctx: ProjectContext): boolean {
 export function filePathToRoute(filePath: string, pagesRoot: string): string {
   const relativeFilePath = relative(pagesRoot, filePath);
   const withoutExtension = relativeFilePath.replace(FILE_EXTENSIONS_PATTERN, "");
-  const normalized = withoutExtension.split(sep).join("/");
-  const route = normalized
-    .replace(/\[\.\.\.(\w+)\]/g, "*")
-    .replace(/\[(\w+)\]/g, ":$1")
-    .replace(/\/index$/g, "")
-    .replace(/^index$/g, "");
+  const routeSegments = withoutExtension
+    .split(sep)
+    .flatMap((segment, index, segments) =>
+      normalizeRouteSegment(segment, index === segments.length - 1),
+    );
+  const route = routeSegments.join("/");
 
   return route ? `/${route}` : "/";
 }
@@ -49,7 +68,15 @@ export async function extractFileBasedRoutes(ctx: ProjectContext): Promise<Route
     for (const pagesRoot of getPagesRoots(ctx.rootDir)) {
       for (const filePath of collectPageFiles(pagesRoot)) {
         const routePath = filePathToRoute(filePath, pagesRoot);
-        routes.set(routePath, { path: routePath, source: "static" });
+        routes.set(routePath, {
+          path: routePath,
+          source: "static",
+          meta: {
+            pagesRoot,
+            staticFiles: [filePath],
+            staticSources: [FILE_ROUTING_SOURCE],
+          },
+        });
       }
     }
 
@@ -100,7 +127,7 @@ function collectPageFiles(directory: string): string[] {
       continue;
     }
 
-    if (FILE_EXTENSIONS_PATTERN.test(entry.name)) {
+    if (FILE_EXTENSIONS_PATTERN.test(entry.name) && !shouldIgnorePageFile(entry.name)) {
       pageFiles.push(entryPath);
     }
   }
@@ -110,13 +137,38 @@ function collectPageFiles(directory: string): string[] {
 
 function shouldIgnoreEntry(name: string): boolean {
   return (
-    name === "__tests__" ||
-    name.startsWith(".") ||
-    name.startsWith("_") ||
-    name === "_app.tsx" ||
-    name === "_document.tsx" ||
-    name === "_error.tsx"
+    name === "__tests__" || name.startsWith(".") || (name.startsWith("_") && !name.startsWith("[["))
   );
+}
+
+function shouldIgnorePageFile(name: string): boolean {
+  const normalizedName = name.replace(FILE_EXTENSIONS_PATTERN, "");
+  return IGNORED_PAGE_FILES.has(normalizedName);
+}
+
+function normalizeRouteSegment(segment: string, isLeafFile: boolean): string[] {
+  if (segment === "index") {
+    return [];
+  }
+
+  if (isLeafFile && segment === "page") {
+    return [];
+  }
+
+  if (ROUTE_GROUP_PATTERN.test(segment)) {
+    return [];
+  }
+
+  if (OPTIONAL_CATCH_ALL_SEGMENT_PATTERN.test(segment) || CATCH_ALL_SEGMENT_PATTERN.test(segment)) {
+    return ["*"];
+  }
+
+  const dynamicMatch = segment.match(DYNAMIC_SEGMENT_PATTERN);
+  if (dynamicMatch) {
+    return [`:${dynamicMatch[1]}`];
+  }
+
+  return [segment];
 }
 
 function getDependencies(packageJson: Record<string, unknown>): Record<string, string> {

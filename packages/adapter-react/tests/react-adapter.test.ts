@@ -208,16 +208,51 @@ describe("ReactAdapter", () => {
 
     try {
       fileBasedSpy.mockResolvedValue([
-        { path: "/", source: "static" },
-        { path: "/about", source: "static" },
+        {
+          path: "/",
+          source: "static",
+          meta: {
+            staticFiles: ["/workspace/app/pages/index.tsx"],
+            staticSources: ["file-based-routing"],
+          },
+        },
+        {
+          path: "/about",
+          source: "static",
+          meta: {
+            staticFiles: ["/workspace/app/pages/index.tsx"],
+            staticSources: ["file-based-routing"],
+          },
+        },
       ]);
 
       await expect(
         adapter.extractStaticRoutes({ rootDir: "/workspace/app", packageJson: {} }),
       ).resolves.toEqual([
-        { path: "/", source: "static" },
-        { path: "/about", source: "static" },
-        { path: "/settings", source: "static" },
+        {
+          path: "/",
+          source: "static",
+          meta: {
+            staticFiles: ["/workspace/app/pages/index.tsx"],
+            staticSources: ["file-based-routing"],
+          },
+        },
+        {
+          path: "/about",
+          source: "static",
+          meta: {
+            staticFiles: ["/workspace/app/pages/index.tsx", "/workspace/app/src/routes.tsx"],
+            staticSources: ["file-based-routing", "react-router-ast"],
+          },
+        },
+        {
+          path: "/settings",
+          source: "static",
+          meta: {
+            staticFiles: ["/workspace/app/src/routes.tsx"],
+            staticSources: ["react-router-ast"],
+          },
+        },
       ]);
     } finally {
       fileRoutesSpy.mockRestore();

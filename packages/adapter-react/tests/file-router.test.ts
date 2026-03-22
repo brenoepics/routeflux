@@ -11,11 +11,18 @@ describe("file-based router", () => {
   test("converts catch-all segments from [...slug] to *", () => {
     expect(filePathToRoute("/app/pages/[...slug].tsx", "/app/pages")).toBe("/*");
     expect(filePathToRoute("/app/pages/docs/[...slug].tsx", "/app/pages")).toBe("/docs/*");
+    expect(filePathToRoute("/app/pages/docs/[[...slug]].tsx", "/app/pages")).toBe("/docs/*");
   });
 
   test("normalizes index files to root-aware route paths", () => {
     expect(filePathToRoute("/app/pages/index.tsx", "/app/pages")).toBe("/");
     expect(filePathToRoute("/app/pages/users/index.tsx", "/app/pages")).toBe("/users");
+    expect(filePathToRoute("/app/pages/users/page.tsx", "/app/pages")).toBe("/users");
+  });
+
+  test("supports route groups and app-style page leaf files", () => {
+    expect(filePathToRoute("/app/pages/(marketing)/about.tsx", "/app/pages")).toBe("/about");
+    expect(filePathToRoute("/app/pages/(shop)/products/page.tsx", "/app/pages")).toBe("/products");
   });
 
   test("detects file-based routing from pages directories or vite-plugin-pages", async () => {
@@ -80,12 +87,23 @@ describe("file-based router", () => {
     try {
       await mkdir(join(rootDir, "src", "pages", "users"), { recursive: true });
       await mkdir(join(rootDir, "src", "pages", "__tests__"), { recursive: true });
+      await mkdir(join(rootDir, "src", "pages", "(marketing)"), { recursive: true });
       await writeFile(join(rootDir, "src", "pages", "index.tsx"), "export default null;");
       await writeFile(join(rootDir, "src", "pages", "about.tsx"), "export default null;");
+      await writeFile(
+        join(rootDir, "src", "pages", "(marketing)", "home.tsx"),
+        "export default null;",
+      );
+      await mkdir(join(rootDir, "src", "pages", "(shop)", "products"), { recursive: true });
+      await writeFile(
+        join(rootDir, "src", "pages", "(shop)", "products", "page.tsx"),
+        "export default null;",
+      );
       await writeFile(join(rootDir, "src", "pages", "users", "[id].tsx"), "export default null;");
       await writeFile(join(rootDir, "src", "pages", "[...slug].tsx"), "export default null;");
       await writeFile(join(rootDir, "src", "pages", "README.md"), "ignored");
       await writeFile(join(rootDir, "src", "pages", "_app.tsx"), "export default null;");
+      await writeFile(join(rootDir, "src", "pages", "layout.tsx"), "export default null;");
       await writeFile(join(rootDir, "src", "pages", ".hidden.tsx"), "export default null;");
       await writeFile(
         join(rootDir, "src", "pages", "__tests__", "ignored.tsx"),
@@ -93,10 +111,60 @@ describe("file-based router", () => {
       );
 
       await expect(extractFileBasedRoutes({ rootDir, packageJson: {} })).resolves.toEqual([
-        { path: "/", source: "static" },
-        { path: "/about", source: "static" },
-        { path: "/users/:id", source: "static" },
-        { path: "/*", source: "static" },
+        {
+          path: "/",
+          source: "static",
+          meta: {
+            pagesRoot: join(rootDir, "src", "pages"),
+            staticFiles: [join(rootDir, "src", "pages", "index.tsx")],
+            staticSources: ["file-based-routing"],
+          },
+        },
+        {
+          path: "/about",
+          source: "static",
+          meta: {
+            pagesRoot: join(rootDir, "src", "pages"),
+            staticFiles: [join(rootDir, "src", "pages", "about.tsx")],
+            staticSources: ["file-based-routing"],
+          },
+        },
+        {
+          path: "/home",
+          source: "static",
+          meta: {
+            pagesRoot: join(rootDir, "src", "pages"),
+            staticFiles: [join(rootDir, "src", "pages", "(marketing)", "home.tsx")],
+            staticSources: ["file-based-routing"],
+          },
+        },
+        {
+          path: "/products",
+          source: "static",
+          meta: {
+            pagesRoot: join(rootDir, "src", "pages"),
+            staticFiles: [join(rootDir, "src", "pages", "(shop)", "products", "page.tsx")],
+            staticSources: ["file-based-routing"],
+          },
+        },
+        {
+          path: "/users/:id",
+          source: "static",
+          meta: {
+            pagesRoot: join(rootDir, "src", "pages"),
+            staticFiles: [join(rootDir, "src", "pages", "users", "[id].tsx")],
+            staticSources: ["file-based-routing"],
+          },
+        },
+        {
+          path: "/*",
+          source: "static",
+          meta: {
+            pagesRoot: join(rootDir, "src", "pages"),
+            staticFiles: [join(rootDir, "src", "pages", "[...slug].tsx")],
+            staticSources: ["file-based-routing"],
+          },
+        },
       ]);
     } finally {
       await rm(rootDir, { force: true, recursive: true });

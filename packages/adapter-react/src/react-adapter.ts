@@ -2,6 +2,8 @@ import type { ProjectContext, Route, RouteAdapter } from "@routeforge/core";
 import { detectFileBasedRouting, extractFileBasedRoutes } from "./file-router";
 import { extractPathsFromSourceFile, scanSourceFiles } from "./static-extractor";
 
+const AST_STATIC_SOURCE = "react-router-ast";
+
 /**
  * React adapter detection for React Router-based projects.
  */
@@ -44,13 +46,20 @@ export class ReactAdapter implements RouteAdapter {
     const routes = new Map<string, Route>();
 
     for (const route of await extractFileBasedRoutes(project)) {
-      routes.set(route.path, route);
+      mergeStaticRoute(routes, route);
     }
 
     for (const filePath of scanSourceFiles(project.rootDir)) {
       try {
         for (const path of extractPathsFromSourceFile(filePath)) {
-          routes.set(path, { path, source: "static" });
+          mergeStaticRoute(routes, {
+            path,
+            source: "static",
+            meta: {
+              staticFiles: [filePath],
+              staticSources: [AST_STATIC_SOURCE],
+            },
+          });
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -58,8 +67,38 @@ export class ReactAdapter implements RouteAdapter {
       }
     }
 
-    return [...routes.values()];
+    return [...routes.values()].sort((left, right) => left.path.localeCompare(right.path));
   }
+}
+
+function mergeStaticRoute(routes: Map<string, Route>, route: Route): void {
+  const existingRoute = routes.get(route.path);
+
+  if (!existingRoute) {
+    routes.set(route.path, route);
+    return;
+  }
+
+  const existingMeta = existingRoute.meta ?? {};
+  const nextMeta = route.meta ?? {};
+
+  routes.set(route.path, {
+    ...existingRoute,
+    meta: {
+      ...existingMeta,
+      ...nextMeta,
+      staticFiles: mergeMetaStringArrays(existingMeta.staticFiles, nextMeta.staticFiles),
+      staticSources: mergeMetaStringArrays(existingMeta.staticSources, nextMeta.staticSources),
+    },
+  });
+}
+
+function mergeMetaStringArrays(left: unknown, right: unknown): string[] {
+  return [
+    ...new Set([...(Array.isArray(left) ? left : []), ...(Array.isArray(right) ? right : [])]),
+  ]
+    .filter((value): value is string => typeof value === "string")
+    .sort();
 }
 
 function getDependencies(packageJson: Record<string, unknown>): Record<string, string> {
