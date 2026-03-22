@@ -267,6 +267,37 @@ describe("PuppeteerCrawler", () => {
     ]);
   });
 
+  test("groups dynamic concrete paths into route templates before returning", async () => {
+    const pages: Record<string, string[]> = {
+      "https://example.com/": ["https://example.com/users/123", "https://example.com/users/456"],
+      "https://example.com/users/123": [],
+      "https://example.com/users/456": [],
+    };
+    let currentUrl = "https://example.com/";
+
+    goto.mockImplementation(async (url: string) => {
+      currentUrl = url;
+    });
+    evaluate.mockImplementation(async (script: () => unknown) => {
+      return script.toString().includes("document.querySelectorAll")
+        ? (pages[currentUrl] ?? [])
+        : [];
+    });
+
+    const crawler = new PuppeteerCrawler({ launch });
+    const result = await crawler.crawl("https://example.com", { interactionDelay: 0 });
+
+    expect(result.routes).toEqual([
+      { path: "/", source: "runtime" },
+      {
+        path: "/users/:id",
+        params: ["id"],
+        source: "runtime",
+        meta: { examples: ["/users/123", "/users/456"] },
+      },
+    ]);
+  });
+
   test("records goto errors and still closes the browser", async () => {
     goto.mockRejectedValue(new Error("Navigation timed out"));
 

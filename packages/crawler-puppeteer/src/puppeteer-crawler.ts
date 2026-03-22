@@ -5,8 +5,8 @@ import {
   type CrawlOptions,
   type CrawlError,
   type CrawlResult,
-  type Route,
 } from "@routeforge/core";
+import { groupRoutesByTemplate, toRoutesFromGroups } from "./param-extractor";
 import { DEFAULT_MAX_PAGES, isSameOrigin, normalizeUrl, toPathname } from "./utils";
 
 type HistoryChange = {
@@ -35,7 +35,7 @@ export class PuppeteerCrawler implements Crawler {
     const normalizedStartUrl = normalizeUrl(startUrl);
     const errors: CrawlError[] = [];
     const visited = new Set<string>();
-    const routes = new Map<string, Route>();
+    const concretePaths = new Set<string>();
     const queue: Array<{ url: string; depth: number }> = [{ url: normalizedStartUrl, depth: 0 }];
     const maxDepth = options.maxDepth ?? DEFAULT_CRAWL_MAX_DEPTH;
     const maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
@@ -70,7 +70,7 @@ export class PuppeteerCrawler implements Crawler {
           continue;
         }
 
-        routes.set(toPathname(url), { path: toPathname(url), source: "runtime" });
+        concretePaths.add(toPathname(url));
 
         for (const link of links) {
           if (!isSameOrigin(link, normalizedStartUrl)) {
@@ -88,7 +88,7 @@ export class PuppeteerCrawler implements Crawler {
       }
 
       return {
-        routes: [...routes.values()],
+        routes: toRoutesFromGroups(groupRoutesByTemplate([...concretePaths])),
         errors: errors.length > 0 ? errors : undefined,
         durationMs: Date.now() - startedAt,
       };
