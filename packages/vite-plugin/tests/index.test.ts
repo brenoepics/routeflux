@@ -1,4 +1,7 @@
 import { EventEmitter } from "node:events";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, expectTypeOf, test, vi } from "vite-plus/test";
 import { defineConfig, type Plugin } from "vite";
 import * as orchestrator from "../src/orchestrator";
@@ -238,6 +241,42 @@ describe("crawlerPlugin", () => {
     } finally {
       runCrawl.mockRestore();
       log.mockRestore();
+    }
+  });
+
+  test("writes build crawl outputs into the configured outDir", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "routeforge-build-output-"));
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const runCrawl = vi.spyOn(orchestrator, "runCrawl").mockResolvedValue({
+      routes: [{ path: "/", source: "runtime" }],
+      durationMs: 1,
+    });
+    const plugin = crawlerPlugin({
+      baseUrl: "https://fallback.example.com",
+      output: ["routes.json", "sitemap.xml"],
+    }) as Plugin & {
+      closeBundle?: () => Promise<void>;
+      configResolved?: (config: unknown) => void;
+    };
+
+    try {
+      plugin.configResolved?.({ build: { outDir }, server: { origin: "https://example.com" } });
+      await plugin.closeBundle?.();
+
+      expect(runCrawl).toHaveBeenCalledWith("https://example.com", {
+        baseUrl: "https://fallback.example.com",
+        output: ["routes.json", "sitemap.xml"],
+      });
+      await expect(readFile(join(outDir, "routes.json"), "utf8")).resolves.toContain('"path": "/"');
+      await expect(readFile(join(outDir, "sitemap.xml"), "utf8")).resolves.toContain(
+        "https://example.com",
+      );
+      expect(log).toHaveBeenCalledWith(`[routeforge] Wrote output: ${join(outDir, "routes.json")}`);
+      expect(log).toHaveBeenCalledWith(`[routeforge] Wrote output: ${join(outDir, "sitemap.xml")}`);
+    } finally {
+      runCrawl.mockRestore();
+      log.mockRestore();
+      await rm(outDir, { force: true, recursive: true });
     }
   });
 

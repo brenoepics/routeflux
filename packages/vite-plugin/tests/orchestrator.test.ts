@@ -1,8 +1,9 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 import type { Plugin } from "@routeforge/core";
 import { Container, SERVICE_KEYS } from "@routeforge/core";
+import * as adapterReact from "@routeforge/adapter-react";
 import { PuppeteerCrawler } from "@routeforge/crawler-puppeteer";
-import { runCrawl } from "../src/orchestrator";
+import { detectAdapter, prepareCrawlRuntimeContext, runCrawl } from "../src/orchestrator";
 
 describe("runCrawl", () => {
   test("runs the configured crawler with crawl options", async () => {
@@ -103,6 +104,64 @@ describe("runCrawl", () => {
       expect(crawl).toHaveBeenCalledWith("https://example.com", {});
     } finally {
       crawl.mockRestore();
+    }
+  });
+
+  test("detects the React adapter when the project matches", () => {
+    const detect = vi.spyOn(adapterReact.ReactAdapter.prototype, "detect").mockReturnValue(true);
+
+    try {
+      expect(detectAdapter({ rootDir: "/workspace/app", packageJson: {} })).toBeInstanceOf(
+        adapterReact.ReactAdapter,
+      );
+    } finally {
+      detect.mockRestore();
+    }
+  });
+
+  test("prepares static routes through the detected adapter", async () => {
+    const detect = vi.spyOn(adapterReact.ReactAdapter.prototype, "detect").mockReturnValue(true);
+    const extract = vi
+      .spyOn(adapterReact.ReactAdapter.prototype, "extractStaticRoutes")
+      .mockResolvedValue([{ path: "/users/:id", params: ["id"], source: "static" }]);
+
+    try {
+      await expect(prepareCrawlRuntimeContext({ rootDir: "/workspace/app" })).resolves.toEqual({
+        adapter: expect.any(adapterReact.ReactAdapter),
+        projectContext: { rootDir: "/workspace/app", packageJson: {} },
+        staticRoutes: [{ path: "/users/:id", params: ["id"], source: "static" }],
+      });
+    } finally {
+      detect.mockRestore();
+      extract.mockRestore();
+    }
+  });
+
+  test("passes detected adapter static routes into the default crawler", async () => {
+    const detect = vi.spyOn(adapterReact.ReactAdapter.prototype, "detect").mockReturnValue(true);
+    const extract = vi
+      .spyOn(adapterReact.ReactAdapter.prototype, "extractStaticRoutes")
+      .mockResolvedValue([{ path: "/about", source: "static" }]);
+    const crawl = vi.spyOn(PuppeteerCrawler.prototype, "crawl").mockResolvedValue({
+      routes: [{ path: "/about", source: "hybrid" }],
+      durationMs: 4,
+    });
+    const enhanceRuntime = vi.spyOn(adapterReact.ReactAdapter.prototype, "enhanceRuntime");
+
+    try {
+      await expect(runCrawl("https://example.com", { rootDir: "/workspace/app" })).resolves.toEqual(
+        {
+          routes: [{ path: "/about", source: "hybrid" }],
+          durationMs: 4,
+        },
+      );
+      expect(crawl).toHaveBeenCalledWith("https://example.com", {});
+      expect(enhanceRuntime).not.toHaveBeenCalled();
+    } finally {
+      detect.mockRestore();
+      extract.mockRestore();
+      crawl.mockRestore();
+      enhanceRuntime.mockRestore();
     }
   });
 });

@@ -161,6 +161,9 @@ importers:
 
   packages/vite-plugin:
     dependencies:
+      '@routeforge/adapter-react':
+        specifier: workspace:*
+        version: link:../adapter-react
       '@routeforge/core':
         specifier: workspace:*
         version: link:../core

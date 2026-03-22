@@ -1,8 +1,10 @@
 import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
 import * as orchestrator from "./orchestrator";
 import type { CrawlerPluginOptions } from "./orchestrator";
+import { writeCrawlOutputs } from "./output";
 
 export type { CrawlerPluginOptions } from "./orchestrator";
+export { normalizeOutputTargets, writeCrawlOutputs } from "./output";
 
 const ROUTEFORGE_PLUGIN_NAME = "vite-plugin-routeforge";
 
@@ -116,6 +118,19 @@ export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
       try {
         const result = await orchestrator.runCrawl(baseUrl, options);
         console.log(`[routeforge] Discovered ${result.routes.length} routes`);
+
+        if (resolvedConfig?.build?.outDir) {
+          const outDir = resolvedConfig.build.outDir;
+          const writtenFiles = await writeCrawlOutputs(result, {
+            baseUrl,
+            outDir,
+            output: options.output,
+          });
+
+          for (const filePath of writtenFiles) {
+            console.log(`[routeforge] Wrote output: ${filePath}`);
+          }
+        }
       } catch (error) {
         console.error("[routeforge] Crawl failed:", error);
       }
@@ -127,7 +142,7 @@ export function crawlerPlugin(options: CrawlerPluginOptions = {}): Plugin {
 }
 
 export default crawlerPlugin;
-export { runCrawl } from "./orchestrator";
+export { detectAdapter, prepareCrawlRuntimeContext, runCrawl } from "./orchestrator";
 
 function normalizeDevServerHost(host: string): string {
   if (host === "::" || host === "0.0.0.0") {
