@@ -12,7 +12,7 @@ catalog:
   "@vitest/coverage-v8": ^4.1.0
   esbuild: ^0.27.0
   puppeteer: ^24.40.0
-  typescript: ^5
+  typescript: ^6
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vitepress: ^1.6.4
   vitepress-carbon: ^1.5.0
