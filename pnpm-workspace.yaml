@@ -10,7 +10,7 @@ catalog:
   "@types/babel__traverse": ^7.28.0
   "@types/node": ^24
   "@vitest/coverage-v8": ^4.1.0
-  esbuild: ^0.27.0
+  esbuild: ^0.28.0
   puppeteer: ^24.40.0
   typescript: ^5
   vite: npm:@voidzero-dev/vite-plus-core@latest
